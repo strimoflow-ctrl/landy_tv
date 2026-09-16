@@ -1,0 +1,16 @@
+{
+  "name": "landy_tv",
+  "version": "2.0.0",
+  "description": "Landy TV - Fullstack Telegram Mini App and Bot",
+  "main": "run_all.js",
+  "scripts": {
+    "start": "node run_all.js",
+    "dev": "node run_all.js",
+    "server": "node backend/server.js",
+    "bot": "node backend/bot/bot.js",
+    "build": "npm --prefix frontend install && npm --prefix frontend run build && npm --prefix backend install"
+  },
+  "keywords": ["telegram-mini-app", "react", "express", "telegram-bot"],
+  "author": "",
+  "license": "ISC"
+}
