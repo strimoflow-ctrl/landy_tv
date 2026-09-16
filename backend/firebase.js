@@ -122,11 +122,52 @@ async function isUserBlocked(userId) {
   }
 }
 
+/**
+ * Helper to generate Firebase-safe key from URL
+ */
+function getVideoKey(url) {
+  return Buffer.from(url).toString('base64').replace(/[/+=]/g, '_');
+}
+
+/**
+ * Check if a video was already posted to the channel
+ */
+async function isVideoAlreadyPosted(url) {
+  try {
+    const key = getVideoKey(url);
+    const res = await axios.get(`${DB_URL}/posted_videos/${key}.json`, { timeout: 5000 });
+    return Boolean(res.data);
+  } catch (e) {
+    return false;
+  }
+}
+
+/**
+ * Mark a video as posted in Firebase (records timestamp & channel)
+ */
+async function markVideoPosted(video, channelId = '') {
+  try {
+    const key = getVideoKey(video.url);
+    await axios.put(`${DB_URL}/posted_videos/${key}.json`, {
+      title: video.title || '',
+      url: video.url,
+      channel: channelId || '',
+      postedAt: Date.now()
+    }, { timeout: 5000 });
+    return true;
+  } catch (e) {
+    console.warn('[Firebase DB] Could not mark video as posted:', e.message);
+    return false;
+  }
+}
+
 module.exports = {
   firebaseConfig,
   DB_URL,
   getBotSettings,
   updateBotSettings,
   saveOrUpdateUser,
-  isUserBlocked
+  isUserBlocked,
+  isVideoAlreadyPosted,
+  markVideoPosted
 };

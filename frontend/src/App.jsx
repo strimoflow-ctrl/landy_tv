@@ -25,12 +25,40 @@ export default function App() {
   // Ref to prevent duplicate concurrent page loads
   const loadingRef = useRef(false);
 
-  // Telegram SDK Init
+  // Telegram SDK Init & Deep Link Auto-Play
   useEffect(() => {
     const tg = window.Telegram?.WebApp;
     if (tg) {
       tg.expand();
       tg.ready();
+    }
+
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      let param = tg?.initDataUnsafe?.start_param || urlParams.get('start');
+      if (param) {
+        if (param.startsWith('v_')) param = param.substring(2);
+        try {
+          const decoded = atob(param);
+          if (decoded && decoded.startsWith('http')) {
+            setCurrentVideo({
+              title: 'Now Playing',
+              url: decoded,
+              thumbnail: '/logo.jpg'
+            });
+          }
+        } catch (e) {
+          if (param.startsWith('http')) {
+            setCurrentVideo({
+              title: 'Now Playing',
+              url: param,
+              thumbnail: '/logo.jpg'
+            });
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('Could not parse start param:', err);
     }
   }, []);
 
