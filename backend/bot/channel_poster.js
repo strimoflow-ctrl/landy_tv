@@ -179,9 +179,6 @@ async function postVideoToChannel(channelId, video) {
     inline_keyboard: [
       [
         { text: '🎬 Watch Now (Ultra HD)', url: watchDeepLink }
-      ],
-      [
-        { text: '🍿 Open Landy TV App', url: `https://t.me/${BOT_USERNAME}` }
       ]
     ]
   };

@@ -62,8 +62,16 @@ if (!BOT_TOKEN || BOT_TOKEN === 'YOUR_BOT_TOKEN_HERE') {
 
       const unjoinedChannels = [];
       for (const ch of settings.channels) {
-        const target = ch.chatId || ch.username || ch.url;
-        if (target) {
+        let target = (ch.chatId || ch.username || '').trim();
+        if ((!target || target === '@') && ch.url) {
+          const parts = ch.url.split('/').filter(Boolean);
+          const last = parts[parts.length - 1];
+          if (last && !last.startsWith('+')) {
+            target = `@${last.replace('@', '')}`;
+          }
+        }
+
+        if (target && target.length > 2 && target !== '@') {
           const isMember = await checkUserMembership(target, userId);
           if (!isMember) {
             unjoinedChannels.push(ch);
