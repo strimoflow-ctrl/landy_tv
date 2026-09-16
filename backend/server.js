@@ -304,9 +304,10 @@ app.get('/api/video-source', async (req, res) => {
     return res.status(404).json({ success: false, error: 'Video source not found or unavailable' });
 });
 
-// 3. Related Videos (Real-time from video page + blend with feed)
+// 3. Related Videos (Real-time from video page + endless paginated stream)
 app.get('/api/related', async (req, res) => {
     let videoUrl = req.query.url;
+    const page = Math.max(1, parseInt(req.query.page) || 1);
     if (!videoUrl) {
         return res.status(400).json({ success: false, error: 'Missing video url parameter' });
     }
@@ -318,46 +319,56 @@ app.get('/api/related', async (req, res) => {
         videoUrl = BASE_SOURCE_URL.replace(/\/$/, '') + '/' + videoUrl.replace(/^\//, '');
     }
 
-    const cacheKey = `related_${videoUrl}`;
+    const cacheKey = `related_${videoUrl}_p_${page}`;
     const cached = getCached(cacheKey);
     if (cached) {
-        return res.json({ success: true, source: 'cache', count: cached.length, data: cached });
+        return res.json({ success: true, source: 'cache', page, count: cached.length, data: cached });
     }
 
     try {
-        const response = await fetchPage(videoUrl);
-        const $ = cheerio.load(response.data);
-        let related = extractVideos($, BASE_SOURCE_URL);
-        related = related.filter(v => v.url !== videoUrl);
+        let related = [];
+        if (page === 1) {
+            // First page: Extract related directly from video page
+            const response = await fetchPage(videoUrl);
+            const $ = cheerio.load(response.data);
+            related = extractVideos($, BASE_SOURCE_URL).filter(v => v.url !== videoUrl);
 
-        // If page has fewer than 15 related videos, blend with feed videos
-        if (related.length < 15) {
-            let feedCached = getCached('realtime_feed_page_1');
-            if (!feedCached) {
-                const feedRes = await fetchPage(`${BASE_SOURCE_URL}/`);
-                feedCached = extractVideos(cheerio.load(feedRes.data), BASE_SOURCE_URL);
-                setCached('realtime_feed_page_1', feedCached);
-            }
+            // Blend with feed page 1 to ensure at least 25-30 recommendations
+            if (related.length < 25) {
+                let feedRes = await fetchPage(`${BASE_SOURCE_URL}/`);
+                let feedVideos = extractVideos(cheerio.load(feedRes.data), BASE_SOURCE_URL);
+                const seen = new Set(related.map(r => r.url));
+                seen.add(videoUrl);
 
-            const seen = new Set(related.map(r => r.url));
-            seen.add(videoUrl);
-
-            for (const v of feedCached) {
-                if (!seen.has(v.url)) {
-                    seen.add(v.url);
-                    related.push(v);
+                for (const v of feedVideos) {
+                    if (!seen.has(v.url)) {
+                        seen.add(v.url);
+                        related.push(v);
+                    }
+                    if (related.length >= 30) break;
                 }
-                if (related.length >= 20) break;
             }
+        } else {
+            // Page 2, 3, 4, ...: Realtime endless recommendations from feed pages
+            const targetUrl = `${BASE_SOURCE_URL}/page/${page}/`;
+            const feedRes = await fetchPage(targetUrl);
+            const feedVideos = extractVideos(cheerio.load(feedRes.data), BASE_SOURCE_URL);
+            related = feedVideos.filter(v => v.url !== videoUrl);
         }
 
         setCached(cacheKey, related);
-        return res.json({ success: true, count: related.length, data: related });
+        return res.json({ success: true, page, count: related.length, data: related });
     } catch (err) {
         console.error(`[Related Videos Error] ${err.message}`);
-        const feedCached = getCached('realtime_feed_page_1') || [];
-        const fallbackRelated = feedCached.filter(v => v.url !== videoUrl);
-        return res.json({ success: true, count: fallbackRelated.length, data: fallbackRelated });
+        try {
+            const fallbackUrl = page === 1 ? `${BASE_SOURCE_URL}/` : `${BASE_SOURCE_URL}/page/${page}/`;
+            const feedRes = await fetchPage(fallbackUrl);
+            const feedVideos = extractVideos(cheerio.load(feedRes.data), BASE_SOURCE_URL);
+            const fallbackRelated = feedVideos.filter(v => v.url !== videoUrl);
+            return res.json({ success: true, page, count: fallbackRelated.length, data: fallbackRelated });
+        } catch (e) {
+            return res.json({ success: true, page, count: 0, data: [] });
+        }
     }
 });
 

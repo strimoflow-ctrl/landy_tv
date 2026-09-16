@@ -65,11 +65,11 @@ export async function fetchVideoSource(url) {
 }
 
 /**
- * Fetch related videos from video details page
+ * Fetch related videos from video details page (supports endless pages)
  */
-export async function fetchRelatedVideos(url) {
+export async function fetchRelatedVideos(url, page = 1) {
   try {
-    const res = await fetch(`${API_BASE}/related?url=${encodeURIComponent(url)}`, { headers: defaultHeaders });
+    const res = await fetch(`${API_BASE}/related?url=${encodeURIComponent(url)}&page=${page}`, { headers: defaultHeaders });
     const json = await res.json();
     return json.success ? (json.data || []) : [];
   } catch (err) {
