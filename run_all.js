@@ -1,3 +1,10 @@
+// Polyfill File for older Node.js runtimes (Node 18)
+if (typeof globalThis.File === 'undefined') {
+  try {
+    globalThis.File = class File {};
+  } catch (e) {}
+}
+
 const { spawn } = require('child_process');
 const path = require('path');
 

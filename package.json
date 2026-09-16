@@ -11,6 +11,9 @@
     "build": "npm --prefix frontend install && npm --prefix frontend run build && npm --prefix backend install"
   },
   "keywords": ["telegram-mini-app", "react", "express", "telegram-bot"],
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "author": "",
   "license": "ISC"
 }

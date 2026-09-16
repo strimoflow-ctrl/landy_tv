@@ -1,3 +1,10 @@
+// Polyfill File for older Node.js runtimes (Node 18)
+if (typeof globalThis.File === 'undefined') {
+  try {
+    globalThis.File = class File {};
+  } catch (e) {}
+}
+
 const TelegramBotPackage = require('node-telegram-bot-api');
 const TelegramBot = TelegramBotPackage.default || TelegramBotPackage.TelegramBot || TelegramBotPackage;
 const path = require('path');
@@ -10,7 +17,13 @@ dotenv.config({ path: path.join(__dirname, '../.env') });
 dotenv.config({ path: path.join(__dirname, '../../.env') });
 
 const BOT_TOKEN = process.env.BOT_TOKEN;
-const WEB_APP_URL = process.env.WEB_APP_URL || 'http://localhost:5000';
+
+// Normalize WEB_APP_URL (ensure https:// if user passed domain only)
+let rawAppUrl = (process.env.WEB_APP_URL || 'http://localhost:5000').trim();
+if (rawAppUrl && !rawAppUrl.startsWith('http://') && !rawAppUrl.startsWith('https://')) {
+  rawAppUrl = `https://${rawAppUrl}`;
+}
+const WEB_APP_URL = rawAppUrl;
 
 console.log('🤖 Telegram Bot Service Starting...');
 
@@ -24,6 +37,9 @@ if (!BOT_TOKEN || BOT_TOKEN === 'YOUR_BOT_TOKEN_HERE') {
   try {
     const bot = new TelegramBot(BOT_TOKEN, { polling: true });
 
+    // Clean user-requested Welcome Message
+    const DEFAULT_WELCOME_MSG = `Welcome to Landy TV! 💦\n\nEnjoy streaming your favorite premium videos directly inside Telegram.\n\nClick the button below to start watching!`;
+
     // Helper: Check if user is a member of a channel
     async function checkUserMembership(chatIdOrUsername, userId) {
       try {
@@ -32,7 +48,7 @@ if (!BOT_TOKEN || BOT_TOKEN === 'YOUR_BOT_TOKEN_HERE') {
         return validStatuses.includes(member.status);
       } catch (err) {
         console.warn(`[Bot Warning] Check membership for ${chatIdOrUsername} error: ${err.message}`);
-        // If bot is not admin in channel, don't crash - allow access or log instruction
+        // If bot is not admin in channel, don't crash - allow access
         return true;
       }
     }
@@ -61,28 +77,27 @@ if (!BOT_TOKEN || BOT_TOKEN === 'YOUR_BOT_TOKEN_HERE') {
       };
     }
 
-    // Build App Launch Buttons
+    // Build exactly two buttons: [ 📢 Join Channel ] [ 🎬 Watch Now ]
     function getAppLaunchButtons(appUrl, settings) {
+      const channelUrl = settings?.channels?.[0]?.url || "https://t.me/landy_tv";
       const isHttps = appUrl && appUrl.startsWith('https://');
-      const keyboard = [];
 
-      if (isHttps) {
-        keyboard.push([{ text: "🎬 Open Landy TV", web_app: { url: appUrl } }]);
-      }
+      const watchButton = isHttps
+        ? { text: "🎬 Watch Now", web_app: { url: appUrl } }
+        : { text: "🎬 Watch Now", url: appUrl };
 
-      keyboard.push([
-        { text: "📢 Join Channel", url: settings.channels?.[0]?.url || "https://t.me/landy_tv" },
-        { text: "💬 Support", url: settings.supportUrl || "https://t.me/fufa_jiii" }
-      ]);
-
-      return keyboard;
+      return [
+        [
+          { text: "📢 Join Channel", url: channelUrl },
+          watchButton
+        ]
+      ];
     }
 
     // Command: /start
     bot.onText(/\/start(.*)/, async (msg, match) => {
       const chatId = msg.chat.id;
       const user = msg.from;
-      const firstName = user?.first_name || 'there';
       const startParam = match[1] ? match[1].trim() : '';
 
       // Check if user is blocked
@@ -119,25 +134,15 @@ if (!BOT_TOKEN || BOT_TOKEN === 'YOUR_BOT_TOKEN_HERE') {
         }).catch(err => console.error('Telegram send message error:', err.message));
       }
 
-      // Unlocked: Send Welcome & Mini App Button
+      // Unlocked: Send clean welcome text & 2 buttons
       let appUrl = WEB_APP_URL;
       if (startParam) {
         appUrl = `${WEB_APP_URL}?start=${encodeURIComponent(startParam)}`;
       }
 
-      const welcomeTpl = settings.welcomeText || 
-        `👋 Hello, **{name}**!\n\nWelcome to **Landy TV** 🍿\n\nStream high quality trending videos, web series, and exclusive content directly inside Telegram!`;
-      const welcomeText = welcomeTpl.replace('{name}', firstName);
-
-      const isHttps = appUrl.startsWith('https://');
-      let extraNote = '';
-      if (!isHttps) {
-        extraNote = `\n\n🔗 **Local Browser Link:**\n${appUrl}\n\n*(Note: On production HTTPS host, clicking button opens the Mini App directly inside Telegram!)*`;
-      }
-
       const keyboard = getAppLaunchButtons(appUrl, settings);
 
-      bot.sendMessage(chatId, welcomeText + extraNote, {
+      bot.sendMessage(chatId, DEFAULT_WELCOME_MSG, {
         parse_mode: 'Markdown',
         reply_markup: { inline_keyboard: keyboard }
       }).catch(err => console.error('Telegram send message error:', err.message));
@@ -163,7 +168,7 @@ if (!BOT_TOKEN || BOT_TOKEN === 'YOUR_BOT_TOKEN_HERE') {
         }
 
         await bot.answerCallbackQuery(query.id, {
-          text: '🎉 Verification successful! Welcome to Landy TV.'
+          text: '🎉 Membership verified! Welcome to Landy TV.'
         });
 
         // Save active user
@@ -179,17 +184,9 @@ if (!BOT_TOKEN || BOT_TOKEN === 'YOUR_BOT_TOKEN_HERE') {
           appUrl = `${WEB_APP_URL}?start=${encodeURIComponent(startParam)}`;
         }
 
-        const isHttps = appUrl.startsWith('https://');
-        let extraNote = '';
-        if (!isHttps) {
-          extraNote = `\n\n🔗 **Local Browser Link:**\n${appUrl}\n\n*(Note: On production HTTPS host, clicking button opens the Mini App directly inside Telegram!)*`;
-        }
-
-        const successMsg = `✅ **Membership Verified!**\n\nWelcome to **Landy TV** 🍿\nTap below to watch endless high-speed videos:${extraNote}`;
-
         const keyboard = getAppLaunchButtons(appUrl, settings);
 
-        bot.sendMessage(chatId, successMsg, {
+        bot.sendMessage(chatId, DEFAULT_WELCOME_MSG, {
           parse_mode: 'Markdown',
           reply_markup: { inline_keyboard: keyboard }
         }).catch(err => console.error('Telegram send message error:', err.message));
@@ -200,10 +197,9 @@ if (!BOT_TOKEN || BOT_TOKEN === 'YOUR_BOT_TOKEN_HERE') {
     bot.onText(/\/help/, async (msg) => {
       const chatId = msg.chat.id;
       const settings = await getBotSettings();
-      const isHttps = WEB_APP_URL.startsWith('https://');
       const keyboard = getAppLaunchButtons(WEB_APP_URL, settings);
 
-      bot.sendMessage(chatId, "📌 **How to use Landy TV:**\n\nBrowse thousands of trending videos, enjoy uninterrupted playback, double-tap to seek, bookmark favorites, and track watch history.", {
+      bot.sendMessage(chatId, DEFAULT_WELCOME_MSG, {
         parse_mode: 'Markdown',
         reply_markup: { inline_keyboard: keyboard }
       }).catch(err => console.error('Help message error:', err.message));
