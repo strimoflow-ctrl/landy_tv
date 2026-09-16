@@ -33,3 +33,4 @@ backend/inspect_*.js
 backend/dump_*.js
 backend/jina_dump.html
 backend/video_page.html
+backend/pdf_automation/output/

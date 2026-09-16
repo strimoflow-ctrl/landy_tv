@@ -161,6 +161,67 @@ async function markVideoPosted(video, channelId = '') {
   }
 }
 
+/**
+ * Check if a video PDF was already generated
+ */
+async function isPdfAlreadyGenerated(url) {
+  try {
+    const key = getVideoKey(url);
+    const res = await axios.get(`${DB_URL}/generated_pdfs/${key}.json`, { timeout: 5000 });
+    return Boolean(res.data);
+  } catch (e) {
+    return false;
+  }
+}
+
+/**
+ * Mark a video PDF as generated in Firebase
+ */
+async function markPdfGenerated(video, targetChannel = '', pdfFileName = '') {
+  try {
+    const key = getVideoKey(video.url);
+    await axios.put(`${DB_URL}/generated_pdfs/${key}.json`, {
+      title: video.title || '',
+      url: video.url,
+      channel: targetChannel || '',
+      pdfFileName: pdfFileName || '',
+      generatedAt: Date.now()
+    }, { timeout: 5000 });
+    return true;
+  } catch (e) {
+    console.warn('[Firebase DB] Could not mark PDF as generated:', e.message);
+    return false;
+  }
+}
+
+/**
+ * Get and update PDF channel rotation index from Firebase ("para pari" alternating)
+ */
+async function getPdfChannelIndex() {
+  try {
+    const res = await axios.get(`${DB_URL}/pdf_automation/last_channel_index.json`, { timeout: 5000 });
+    if (res.data && typeof res.data.index === 'number') {
+      return res.data.index;
+    }
+    if (typeof res.data === 'number') {
+      return res.data;
+    }
+    return 0;
+  } catch (e) {
+    return 0;
+  }
+}
+
+async function setPdfChannelIndex(nextIndex) {
+  try {
+    await axios.put(`${DB_URL}/pdf_automation/last_channel_index.json`, { index: Number(nextIndex) || 0 }, { timeout: 5000 });
+    return true;
+  } catch (e) {
+    console.warn('[Firebase DB] Could not set PDF channel index:', e.message);
+    return false;
+  }
+}
+
 module.exports = {
   firebaseConfig,
   DB_URL,
@@ -169,5 +230,10 @@ module.exports = {
   saveOrUpdateUser,
   isUserBlocked,
   isVideoAlreadyPosted,
-  markVideoPosted
+  markVideoPosted,
+  isPdfAlreadyGenerated,
+  markPdfGenerated,
+  getPdfChannelIndex,
+  setPdfChannelIndex
 };
+
