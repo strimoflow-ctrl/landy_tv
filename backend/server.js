@@ -373,14 +373,18 @@ app.use((req, res, next) => {
         if (fs.existsSync(indexDist)) {
             return res.sendFile(indexDist);
         }
+        const indexLegacy = path.join(legacyFrontendPath, 'index.html');
+        if (fs.existsSync(indexLegacy)) {
+            return res.sendFile(indexLegacy);
+        }
     }
     next();
 });
 
-// Start Server
-app.listen(PORT, () => {
+// Start Server - MUST bind to 0.0.0.0 for Railway/Docker container proxy
+app.listen(PORT, '0.0.0.0', () => {
     console.log(`\n=================================================`);
-    console.log(`🚀 Landy TV Realtime Server running on PORT: ${PORT}`);
+    console.log(`🚀 Landy TV Realtime Server running on PORT: ${PORT} (0.0.0.0)`);
     console.log(`📱 App URL: http://localhost:${PORT}`);
     console.log(`📡 Realtime Feed: http://localhost:${PORT}/api/videos?page=1`);
     console.log(`=================================================\n`);
