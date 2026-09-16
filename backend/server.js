@@ -366,6 +366,19 @@ app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', realtime: true, time: new Date().toISOString() });
 });
 
+// Explicit root handler for instant 200 OK
+app.get('/', (req, res) => {
+    const indexDist = path.join(distPath, 'index.html');
+    if (fs.existsSync(indexDist)) {
+        return res.sendFile(indexDist);
+    }
+    const indexLegacy = path.join(legacyFrontendPath, 'index.html');
+    if (fs.existsSync(indexLegacy)) {
+        return res.sendFile(indexLegacy);
+    }
+    return res.send('<h1>🍿 Landy TV Server is LIVE</h1>');
+});
+
 // SPA catch-all: any non-API GET route serves the React index.html
 app.use((req, res, next) => {
     if (req.method === 'GET' && !req.path.startsWith('/api')) {
@@ -382,10 +395,22 @@ app.use((req, res, next) => {
 });
 
 // Start Server - MUST bind to 0.0.0.0 for Railway/Docker container proxy
-app.listen(PORT, '0.0.0.0', () => {
+const primaryPort = parseInt(process.env.PORT, 10) || 5000;
+app.listen(primaryPort, '0.0.0.0', () => {
     console.log(`\n=================================================`);
-    console.log(`🚀 Landy TV Realtime Server running on PORT: ${PORT} (0.0.0.0)`);
-    console.log(`📱 App URL: http://localhost:${PORT}`);
-    console.log(`📡 Realtime Feed: http://localhost:${PORT}/api/videos?page=1`);
+    console.log(`🚀 Landy TV Realtime Server running on PORT: ${primaryPort} (0.0.0.0)`);
+    console.log(`📱 App URL: http://localhost:${primaryPort}`);
+    console.log(`📡 Realtime Feed: http://localhost:${primaryPort}/api/videos?page=1`);
     console.log(`=================================================\n`);
+});
+
+// Also bind to fallback ports (5000 / 8080) so Railway routing never misses
+const fallbackPorts = [5000, 8080].filter(p => p !== primaryPort);
+fallbackPorts.forEach(port => {
+    try {
+        const s = app.listen(port, '0.0.0.0', () => {
+            console.log(`📡 Secondary listener active on port: ${port} (0.0.0.0)`);
+        });
+        s.on('error', () => {});
+    } catch (e) {}
 });
