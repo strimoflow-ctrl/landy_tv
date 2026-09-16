@@ -10,6 +10,7 @@ dotenv.config({ path: path.join(__dirname, '../../.env') });
 dotenv.config({ path: path.join(__dirname, '../.env') });
 
 const { generateSeoPdf } = require('./pdf_engine');
+const { uploadPdfToArchive, hasArchiveCredentials } = require('./archive_uploader');
 const {
   isPdfAlreadyGenerated,
   markPdfGenerated,
@@ -155,11 +156,24 @@ async function runSingleAutomationCycle() {
   const pdfFileName = path.basename(pdfPath);
   console.log(`✅ [Success] Generated PDF: ${pdfPath}`);
 
-  // 4. Mark in Firebase to prevent duplicate generation
-  await markPdfGenerated(video, primaryChannel, pdfFileName);
+  // 4. Archive.org Automatic Cloud Upload (if S3 credentials exist in .env)
+  let archiveResult = null;
+  if (hasArchiveCredentials()) {
+    archiveResult = await uploadPdfToArchive(pdfPath, {
+      title: enhancedTitle,
+      description: `${video.title} - Full HD 1080p Online Stream & Free Download Guide on Telegram.`,
+      keywords: 'watch online; telegram link; full video; 1080p; download; viral mms; web series'
+    });
+  } else {
+    console.log('ℹ️  Archive.org keys not configured in .env yet. (PDF safely preserved in local output folder)');
+  }
+
+  // 5. Mark in Firebase to prevent duplicate generation
+  const archiveUrl = archiveResult && archiveResult.detailsUrl ? archiveResult.detailsUrl : '';
+  await markPdfGenerated(video, primaryChannel, pdfFileName, archiveUrl);
   console.log(`📌 Recorded in Firebase as generated for channel: ${primaryChannel}`);
 
-  // 5. Advance round-robin index in Firebase for the NEXT run
+  // 6. Advance round-robin index in Firebase for the NEXT run
   const nextIndex = (currentIndex + 1) % ROTATING_CHANNELS.length;
   await setPdfChannelIndex(nextIndex);
   console.log(`🔄 Channel rotation updated: Next run will use "${ROTATING_CHANNELS[nextIndex]}"`);
@@ -168,7 +182,8 @@ async function runSingleAutomationCycle() {
     video,
     pdfPath,
     primaryChannel,
-    backupChannel
+    backupChannel,
+    archiveUrl
   };
 }
 
