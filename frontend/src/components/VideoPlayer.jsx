@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, Heart, Bookmark, Share2, Eye, Clock, Sparkles } from 'lucide-react';
+import { ArrowLeft, Heart, Bookmark, Share2, Eye, Clock, Sparkles, Maximize, Minimize } from 'lucide-react';
 import { fetchVideoSource, fetchRelatedVideos } from '../utils/api';
 import { isVideoSaved, toggleSaveVideo, addToWatchHistory } from '../utils/storage';
 
@@ -9,6 +9,7 @@ export default function VideoPlayer({ video, onClose, onSelectVideo }) {
   const [saved, setSaved] = useState(isVideoSaved(video.url));
   const [liked, setLiked] = useState(false);
   const [tapFeedback, setTapFeedback] = useState(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [relatedVideos, setRelatedVideos] = useState([]);
   const [loadingRelated, setLoadingRelated] = useState(true);
   const [loadingMoreRelated, setLoadingMoreRelated] = useState(false);
@@ -154,6 +155,89 @@ export default function VideoPlayer({ video, onClose, onSelectVideo }) {
     }
   };
 
+  // Fullscreen toggle: Hybrid Native + Telegram Mini App + CSS Theater fallback
+  const toggleFullscreen = async (e) => {
+    if (e) e.stopPropagation();
+
+    // 1. If currently fullscreen, exit
+    if (isFullscreen || document.fullscreenElement || document.webkitFullscreenElement) {
+      setIsFullscreen(false);
+      try {
+        if (document.exitFullscreen) await document.exitFullscreen();
+        else if (document.webkitExitFullscreen) await document.webkitExitFullscreen();
+      } catch (err) {}
+
+      const tg = window.Telegram?.WebApp;
+      if (tg?.exitFullscreen) {
+        try { tg.exitFullscreen(); } catch (err) {}
+      }
+      return;
+    }
+
+    // 2. Try Telegram Mini App 8.0 API
+    const tg = window.Telegram?.WebApp;
+    if (tg?.requestFullscreen) {
+      try { tg.requestFullscreen(); } catch (err) {}
+    } else if (tg?.expand) {
+      try { tg.expand(); } catch (err) {}
+    }
+
+    // 3. Try iOS WebKit Fullscreen (Safari & iOS Telegram)
+    if (videoRef.current?.webkitEnterFullscreen) {
+      try {
+        videoRef.current.webkitEnterFullscreen();
+        return;
+      } catch (err) {}
+    }
+
+    // 4. Try Standard HTML5 Request Fullscreen
+    const el = videoRef.current;
+    if (el?.requestFullscreen) {
+      try {
+        await el.requestFullscreen();
+        setIsFullscreen(true);
+        return;
+      } catch (err) {}
+    } else if (el?.webkitRequestFullscreen) {
+      try {
+        await el.webkitRequestFullscreen();
+        setIsFullscreen(true);
+        return;
+      } catch (err) {}
+    }
+
+    // 5. 100% Reliable Fallback: CSS Theater Fullscreen (works in all Telegram in-app WebViews)
+    setIsFullscreen(true);
+  };
+
+  // Listen to native fullscreen changes
+  useEffect(() => {
+    const handleFsChange = () => {
+      const isFs = Boolean(document.fullscreenElement || document.webkitFullscreenElement);
+      setIsFullscreen(isFs);
+    };
+
+    const handleWebkitEnd = () => {
+      setIsFullscreen(false);
+    };
+
+    document.addEventListener('fullscreenchange', handleFsChange);
+    document.addEventListener('webkitfullscreenchange', handleFsChange);
+
+    const vEl = videoRef.current;
+    if (vEl) {
+      vEl.addEventListener('webkitendfullscreen', handleWebkitEnd);
+    }
+
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFsChange);
+      document.removeEventListener('webkitfullscreenchange', handleFsChange);
+      if (vEl) {
+        vEl.removeEventListener('webkitendfullscreen', handleWebkitEnd);
+      }
+    };
+  }, []);
+
   // Double Tap to Seek Forward / Backward
   const handleVideoAreaClick = (e) => {
     const now = Date.now();
@@ -191,22 +275,38 @@ export default function VideoPlayer({ video, onClose, onSelectVideo }) {
       {/* Fixed Sticky Header for Video & Controls */}
       <div className="player-fixed-container">
         {/* Video Canvas Container */}
-        <div className="video-canvas-wrapper" onClick={handleVideoAreaClick}>
+        <div 
+          className={`video-canvas-wrapper ${isFullscreen ? 'theater-fullscreen' : ''}`} 
+          onClick={handleVideoAreaClick}
+        >
           {loading ? (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: '12px' }}>
               <div className="spinner" />
               <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Resolving ultra-fast stream...</span>
             </div>
           ) : sourceUrl ? (
-            <video 
-              ref={videoRef}
-              src={sourceUrl}
-              poster={video.thumbnail}
-              controls
-              autoPlay
-              playsInline
-              className="video-player-el"
-            />
+            <>
+              <video 
+                ref={videoRef}
+                src={sourceUrl}
+                poster={video.thumbnail}
+                controls
+                autoPlay
+                playsInline
+                className="video-player-el"
+              />
+
+              {/* Dedicated Fullscreen Toggle Button (Always visible on Telegram Mini App & Browser) */}
+              <button 
+                type="button"
+                className="fullscreen-toggle-btn"
+                onClick={toggleFullscreen}
+                title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
+                aria-label={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
+              >
+                {isFullscreen ? <Minimize size={18} /> : <Maximize size={18} />}
+              </button>
+            </>
           ) : (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--accent)' }}>
               <span>Failed to load video stream</span>
