@@ -282,7 +282,8 @@ async function postVideoToChannel(channelId, video) {
         await bot.sendPhoto(channelId, imgBuffer, {
           caption: caption,
           parse_mode: 'HTML',
-          reply_markup: replyMarkup
+          reply_markup: replyMarkup,
+          has_spoiler: true
         }, {
           filename: 'thumbnail.jpg',
           contentType: 'image/jpeg'
@@ -300,7 +301,8 @@ async function postVideoToChannel(channelId, video) {
       await bot.sendPhoto(channelId, video.thumbnail, {
         caption: caption,
         parse_mode: 'HTML',
-        reply_markup: replyMarkup
+        reply_markup: replyMarkup,
+        has_spoiler: true
       });
       sent = true;
     } catch (photoErr) {
