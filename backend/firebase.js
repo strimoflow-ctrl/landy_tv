@@ -177,7 +177,7 @@ async function isPdfAlreadyGenerated(url) {
 /**
  * Mark a video PDF as generated in Firebase
  */
-async function markPdfGenerated(video, targetChannel = '', pdfFileName = '') {
+async function markPdfGenerated(video, targetChannel = '', pdfFileName = '', archiveUrl = '') {
   try {
     const key = getVideoKey(video.url);
     await axios.put(`${DB_URL}/generated_pdfs/${key}.json`, {
@@ -185,6 +185,7 @@ async function markPdfGenerated(video, targetChannel = '', pdfFileName = '') {
       url: video.url,
       channel: targetChannel || '',
       pdfFileName: pdfFileName || '',
+      archiveUrl: archiveUrl || '',
       generatedAt: Date.now()
     }, { timeout: 5000 });
     return true;
