@@ -377,6 +377,48 @@ app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', realtime: true, time: new Date().toISOString() });
 });
 
+// Force-Sub Verification Client
+const { verifyAllChannels } = require('./bot/verify');
+const TelegramBotPackage = require('node-telegram-bot-api');
+const TelegramBot = TelegramBotPackage.default || TelegramBotPackage.TelegramBot || TelegramBotPackage;
+const verifierToken = process.env.BOT_TOKEN || process.env.HERRY_BOT_TOKEN;
+let verifierBot = null;
+if (verifierToken && verifierToken !== 'YOUR_BOT_TOKEN_HERE') {
+    try {
+        verifierBot = new TelegramBot(verifierToken, { polling: false });
+    } catch (e) {
+        console.warn('Verifier bot init error:', e.message);
+    }
+}
+
+// Check if user is subscribed to all 4 channels
+app.get('/api/check-subscription', async (req, res) => {
+    const userId = req.query.userId || req.headers['x-telegram-user-id'];
+    
+    // In browser / local testing without Telegram user ID
+    if (!userId) {
+        return res.json({ success: true, isSubscribed: true, unjoined: [], joinedCount: 4, totalCount: 4 });
+    }
+
+    if (!verifierBot) {
+        return res.json({ success: true, isSubscribed: true, unjoined: [], joinedCount: 4, totalCount: 4 });
+    }
+
+    try {
+        const result = await verifyAllChannels(verifierBot, userId);
+        return res.json({
+            success: true,
+            isSubscribed: result.isSubscribed,
+            unjoined: result.unjoined,
+            joinedCount: result.joinedCount,
+            totalCount: result.totalCount
+        });
+    } catch (err) {
+        console.error('[API Check Subscription Error]:', err.message);
+        return res.json({ success: true, isSubscribed: false, unjoined: [], error: err.message });
+    }
+});
+
 // Explicit root handler for instant 200 OK
 app.get('/', (req, res) => {
     const indexDist = path.join(distPath, 'index.html');

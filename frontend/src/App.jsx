@@ -6,6 +6,7 @@ import BottomNav from './components/BottomNav';
 import WatchHistory from './components/WatchHistory';
 import SavedVideos from './components/SavedVideos';
 import ProfileView from './components/ProfileView';
+import ForceSubModal from './components/ForceSubModal';
 import { fetchVideos, searchVideos } from './utils/api';
 
 export default function App() {
@@ -16,6 +17,10 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [currentVideo, setCurrentVideo] = useState(null);
 
+  // Force-Sub Lock State
+  const [isSubscribed, setIsSubscribed] = useState(true);
+  const [unjoinedChannels, setUnjoinedChannels] = useState([]);
+
   // Search state
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -25,6 +30,24 @@ export default function App() {
   // Ref to prevent duplicate concurrent page loads
   const loadingRef = useRef(false);
 
+  // Live Subscription Checker
+  const checkSubscriptionStatus = useCallback(async () => {
+    const tg = window.Telegram?.WebApp;
+    const userId = tg?.initDataUnsafe?.user?.id;
+    if (!userId) return; // Browser / dev mode
+
+    try {
+      const res = await fetch(`/api/check-subscription?userId=${userId}`);
+      const data = await res.json();
+      if (data && data.success) {
+        setIsSubscribed(data.isSubscribed);
+        setUnjoinedChannels(data.unjoined || []);
+      }
+    } catch (e) {
+      console.warn('Subscription check error:', e);
+    }
+  }, []);
+
   // Telegram SDK Init & Deep Link Auto-Play
   useEffect(() => {
     const tg = window.Telegram?.WebApp;
@@ -32,6 +55,12 @@ export default function App() {
       tg.expand();
       tg.ready();
     }
+
+    // Check subscription immediately on app launch
+    checkSubscriptionStatus();
+
+    // Re-verify periodically every 40s (so leaving any channel locks app)
+    const timer = setInterval(checkSubscriptionStatus, 40000);
 
     try {
       const urlParams = new URLSearchParams(window.location.search);
@@ -60,7 +89,9 @@ export default function App() {
     } catch (err) {
       console.warn('Could not parse start param:', err);
     }
-  }, []);
+
+    return () => clearInterval(timer);
+  }, [checkSubscriptionStatus]);
 
   // Realtime Infinite Video Loader
   const loadMoreVideos = useCallback(async () => {
@@ -122,6 +153,17 @@ export default function App() {
 
   return (
     <div className="app-container">
+      {/* Strict Force-Sub Lock Modal if not subscribed */}
+      {!isSubscribed && (
+        <ForceSubModal 
+          unjoined={unjoinedChannels} 
+          onVerifySuccess={() => {
+            setIsSubscribed(true);
+            setUnjoinedChannels([]);
+          }} 
+        />
+      )}
+
       {/* Top Header */}
       <Header 
         showSearch={showSearch} 
