@@ -24,19 +24,25 @@ const botProcess = spawn(process.execPath, [path.join(__dirname, 'backend', 'bot
   cwd: __dirname
 });
 
-// 3. Start Harry Bot (Bridge & 4-Channel Promotion Bot)
+// 3. Start Harry Bot (@HrryLinkGen_Bot - 4-Channel Promotion)
 const harryProcess = spawn(process.execPath, [path.join(__dirname, 'backend', 'bot', 'harry_bot.js')], {
   stdio: 'inherit',
   cwd: __dirname
 });
 
-// 4. Start Automatic Channel Poster Bot
+// 4. Start Harry 1 Bot (@hrrrrrrrrry_bot - 4-Channel Promotion)
+const harry1Process = spawn(process.execPath, [path.join(__dirname, 'backend', 'bot', 'harry_1_bot.js')], {
+  stdio: 'inherit',
+  cwd: __dirname
+});
+
+// 5. Start Automatic Channel Poster Bot
 const posterProcess = spawn(process.execPath, [path.join(__dirname, 'backend', 'bot', 'channel_poster.js')], {
   stdio: 'inherit',
   cwd: __dirname
 });
 
-// 5. Start Automated 3-Hour SEO PDF Engine Daemon
+// 6. Start Automated 3-Hour SEO PDF Engine Daemon
 const pdfProcess = spawn(process.execPath, [path.join(__dirname, 'backend', 'pdf_automation', 'auto_generator.js'), '--daemon'], {
   stdio: 'inherit',
   cwd: __dirname
@@ -54,6 +60,10 @@ harryProcess.on('error', (err) => {
   console.error('Failed to start Harry bot process:', err);
 });
 
+harry1Process.on('error', (err) => {
+  console.error('Failed to start Harry 1 bot process:', err);
+});
+
 posterProcess.on('error', (err) => {
   console.error('Failed to start channel poster process:', err);
 });
@@ -67,6 +77,7 @@ process.on('SIGINT', () => {
   serverProcess.kill();
   botProcess.kill();
   harryProcess.kill();
+  harry1Process.kill();
   posterProcess.kill();
   pdfProcess.kill();
   process.exit();
