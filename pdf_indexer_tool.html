@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Landy TV - PDF Link Extractor & Indexer Hub</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #0a0c14;
+      --bg-card: rgba(18, 22, 36, 0.85);
+      --bg-card-hover: rgba(28, 34, 56, 0.95);
+      --border-color: rgba(255, 255, 255, 0.08);
+      --border-glow: rgba(255, 42, 95, 0.3);
+      --accent: #ff2a5f;
+      --accent-gradient: linear-gradient(135deg, #ff2a5f 0%, #ff5e36 100%);
+      --accent-glow: rgba(255, 42, 95, 0.35);
+      --text-main: #f3f4f6;
+      --text-muted: #9ca3af;
+      --text-dim: #6b7280;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --radius: 12px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      background-image: 
+        radial-gradient(circle at 10% 10%, rgba(255, 42, 95, 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 90% 90%, rgba(59, 130, 246, 0.06) 0%, transparent 40%);
+      background-attachment: fixed;
+      color: var(--text-main);
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      padding: 30px 20px 80px;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    /* Header */
+    .header {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+
+    .badge-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255, 42, 95, 0.12);
+      color: var(--accent);
+      border: 1px solid rgba(255, 42, 95, 0.25);
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      width: fit-content;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .title {
+      font-size: 2.2rem;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      background: linear-gradient(135deg, #ffffff 0%, #d1d5db 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .subtitle {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      max-width: 680px;
+      line-height: 1.5;
+    }
+
+    /* Action bar */
+    .stats-bar {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      padding: 16px 20px;
+      border-radius: var(--radius);
+      backdrop-filter: blur(16px);
+    }
+
+    .stat-num {
+      font-size: 1.8rem;
+      font-weight: 800;
+      color: #ffffff;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .stat-label {
+      font-size: 0.8rem;
+      color: var(--text-dim);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-top: 4px;
+    }
+
+    /* Controls */
+    .controls-panel {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      margin-bottom: 24px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+
+    .search-box {
+      flex: 1;
+      min-width: 260px;
+      position: relative;
+    }
+
+    .search-box input {
+      width: 100%;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .search-box input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 10px var(--accent-glow);
+    }
+
+    .button-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s ease;
+      font-family: inherit;
+    }
+
+    .btn-primary {
+      background: var(--accent-gradient);
+      color: #ffffff;
+      box-shadow: 0 4px 14px var(--accent-glow);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(255, 42, 95, 0.5);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.14);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    /* Table Container */
+    .table-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    th {
+      background: rgba(0, 0, 0, 0.5);
+      padding: 14px 18px;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border-color);
+      font-weight: 700;
+    }
+
+    td {
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--border-color);
+      font-size: 0.88rem;
+      vertical-align: middle;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    tr:hover td {
+      background: var(--bg-card-hover);
+    }
+
+    .video-title {
+      font-weight: 600;
+      color: var(--text-main);
+      max-width: 320px;
+      line-height: 1.4;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .channel-badge {
+      display: inline-block;
+      padding: 3px 8px;
+      background: rgba(59, 130, 246, 0.15);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      color: #60a5fa;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .url-chip {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.76rem;
+      color: #38bdf8;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(56, 189, 248, 0.08);
+      padding: 4px 10px;
+      border-radius: 6px;
+      border: 1px solid rgba(56, 189, 248, 0.2);
+      max-width: 280px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .url-chip:hover {
+      background: rgba(56, 189, 248, 0.16);
+      text-decoration: underline;
+    }
+
+    .table-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .action-icon-btn {
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 0.76rem;
+      font-weight: 600;
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text-muted);
+      border: 1px solid var(--border-color);
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.15s;
+    }
+
+    .action-icon-btn:hover {
+      background: rgba(255, 255, 255, 0.15);
+      color: #ffffff;
+    }
+
+    .google-check-btn:hover {
+      border-color: #4285f4;
+      color: #60a5fa;
+    }
+
+    /* Modal / Textarea for bulk copy */
+    .bulk-modal-bg {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(8px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 20px;
+    }
+
+    .bulk-modal {
+      background: #111422;
+      border: 1px solid var(--border-glow);
+      border-radius: var(--radius);
+      width: 100%;
+      max-width: 650px;
+      padding: 24px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+    }
+
+    .bulk-modal h3 {
+      font-size: 1.25rem;
+      margin-bottom: 8px;
+    }
+
+    .bulk-modal p {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+    }
+
+    .bulk-textarea {
+      width: 100%;
+      height: 220px;
+      background: #080a10;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      color: #34d399;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.82rem;
+      padding: 12px;
+      outline: none;
+      resize: vertical;
+      line-height: 1.5;
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #10b981;
+      color: #ffffff;
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 0.88rem;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+      display: none;
+      z-index: 2000;
+      animation: toastIn 0.3s ease-out forwards;
+    }
+
+    @keyframes toastIn {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .empty-state {
+      padding: 60px 20px;
+      text-align: center;
+      color: var(--text-muted);
+    }
+
+    .spinner {
+      width: 36px;
+      height: 36px;
+      border: 3px solid rgba(255, 255, 255, 0.1);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 40px auto;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <!-- Header -->
+    <header class="header">
+      <div class="badge-pill">🔥 Automation Center</div>
+      <h1 class="title">PDF Links & Indexer Hub</h1>
+      <p class="subtitle">
+        Direct extraction of all generated & uploaded SEO PDFs from your Firebase database. 
+        Instantly grab archive URLs to submit directly into Google Indexers, Omega Indexer, or Speed-Links.
+      </p>
+    </header>
+
+    <!-- Notice Banner if Archive S3 Keys are missing on Railway -->
+    <div id="archiveNoticeBanner" style="display: none; background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.35); border-radius: var(--radius); padding: 16px 20px; margin-bottom: 24px;">
+      <div style="display: flex; align-items: flex-start; gap: 14px;">
+        <span style="font-size: 1.6rem; line-height: 1;">⚠️</span>
+        <div>
+          <h4 style="font-size: 0.98rem; font-weight: 700; color: #fbbf24; margin-bottom: 4px;">Archive.org S3 Keys Missing on Railway!</h4>
+          <p style="font-size: 0.85rem; color: #d1d5db; line-height: 1.45;">
+            PDFs generate ho rahe hain lekin Archive.org par cloud upload nahi hue hain kyunki Railway Environment Variables me <b>ARCHIVE_ACCESS_KEY</b> aur <b>ARCHIVE_SECRET_KEY</b> add nahi hain.
+            <br>
+            👉 <b>Fix:</b> Apne Railway Project me <b>Variables</b> tab me jaake ye do keys daal dijiye:
+            <code style="background: rgba(0,0,0,0.5); padding: 2px 6px; border-radius: 4px; color: #38bdf8;">ARCHIVE_ACCESS_KEY</code> aur <code style="background: rgba(0,0,0,0.5); padding: 2px 6px; border-radius: 4px; color: #38bdf8;">ARCHIVE_SECRET_KEY</code>. Uske baad automated uploader har naye PDF ka 100% working live link Firebase me save kar dega!
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-bar">
+      <div class="stat-card">
+        <div class="stat-num" id="totalPdfs">0</div>
+        <div class="stat-label">Total Generated PDFs</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="totalArchiveUrls">0</div>
+        <div class="stat-label">Archive.org Links Ready</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="dbStatus" style="color: var(--success); font-size: 1.4rem;">Connecting...</div>
+        <div class="stat-label">Firebase Status</div>
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="controls-panel">
+      <div class="search-box">
+        <input type="text" id="searchInput" placeholder="Search by video title, channel, or URL..." oninput="filterData()">
+      </div>
+      <div class="button-group">
+        <button class="btn btn-primary" onclick="openBulkCopyModal()">
+          📋 Copy All URLs for Indexer
+        </button>
+        <button class="btn btn-secondary" onclick="exportToTxt()">
+          💾 Export .TXT
+        </button>
+        <button class="btn btn-secondary" onclick="loadFirebaseData()">
+          🔄 Refresh
+        </button>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="table-card">
+      <div id="loader" class="spinner"></div>
+      <table id="pdfTable" style="display: none;">
+        <thead>
+          <tr>
+            <th style="width: 32%;">Video Title</th>
+            <th style="width: 14%;">Target Channel</th>
+            <th style="width: 32%;">Archive / PDF Link</th>
+            <th style="width: 12%;">Generated</th>
+            <th style="width: 10%;">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody">
+          <!-- Rows will be injected by JavaScript -->
+        </tbody>
+      </table>
+      <div id="emptyMessage" class="empty-state" style="display: none;">
+        No generated PDFs found matching your search.
+      </div>
+    </div>
+  </div>
+
+  <!-- Bulk Copy Modal -->
+  <div class="bulk-modal-bg" id="bulkModal" onclick="closeBulkCopyModal(event)">
+    <div class="bulk-modal" onclick="event.stopPropagation()">
+      <h3>⚡ Copy All URLs for Indexer</h3>
+      <p style="margin-bottom: 12px;">Select URL format for Google Ranking / Indexer tools:</p>
+      
+      <!-- URL Format Switcher -->
+      <div style="display: flex; gap: 16px; margin-bottom: 14px; background: rgba(0,0,0,0.3); padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border-color);">
+        <label style="display: flex; align-items: center; gap: 6px; font-size: 0.85rem; cursor: pointer; color: #38bdf8; font-weight: 600;">
+          <input type="radio" name="urlFormat" value="directPdf" checked onchange="updateModalUrls()">
+          <span>🎯 Direct .PDF URLs (Best for Google Ranking)</span>
+        </label>
+        <label style="display: flex; align-items: center; gap: 6px; font-size: 0.85rem; cursor: pointer; color: var(--text-muted);">
+          <input type="radio" name="urlFormat" value="details" onchange="updateModalUrls()">
+          <span>🌐 Archive.org /details/ Viewer</span>
+        </label>
+      </div>
+
+      <textarea id="bulkUrlTextarea" class="bulk-textarea" readonly></textarea>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeBulkCopyModal()">Close</button>
+        <button class="btn btn-primary" onclick="copyModalContent()">📋 Copy to Clipboard</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Alert -->
+  <div id="toast" class="toast">URLs Copied to Clipboard!</div>
+
+  <script>
+    const FIREBASE_DB_URL = "https://anime-net-a89c9-default-rtdb.asia-southeast1.firebasedatabase.app";
+    const ARCHIVE_SEARCH_API = "https://archive.org/advancedsearch.php?q=creator%3A%22Landy+TV+Media+Network%22&fl[]=identifier,title,publicdate&sort[]=publicdate+desc&rows=100&output=json";
+    let allRecords = [];
+
+    async function loadFirebaseData() {
+      const loader = document.getElementById('loader');
+      const table = document.getElementById('pdfTable');
+      const dbStatus = document.getElementById('dbStatus');
+      const emptyMessage = document.getElementById('emptyMessage');
+
+      loader.style.display = 'block';
+      table.style.display = 'none';
+      emptyMessage.style.display = 'none';
+      dbStatus.innerText = 'Connecting...';
+      dbStatus.style.color = 'var(--warning)';
+
+      try {
+        // 1. Fetch from Archive.org official Search API (Gets 100% Real Live Uploads!)
+        let archiveDocs = [];
+        try {
+          const archiveRes = await fetch(ARCHIVE_SEARCH_API);
+          if (archiveRes.ok) {
+            const archiveData = await archiveRes.json();
+            archiveDocs = archiveData.response?.docs || [];
+          }
+        } catch (archErr) {
+          console.warn('Archive.org search direct fetch error (CORS or network):', archErr.message);
+        }
+
+        // 2. Fetch from Firebase
+        let firebaseData = {};
+        try {
+          const response = await fetch(`${FIREBASE_DB_URL}/generated_pdfs.json`);
+          if (response.ok) {
+            firebaseData = await response.json() || {};
+          }
+        } catch (fbErr) {
+          console.warn('Firebase fetch error:', fbErr.message);
+        }
+
+        dbStatus.innerText = 'Live Synced';
+        dbStatus.style.color = 'var(--success)';
+
+        allRecords = [];
+        const seenIdentifiers = new Set();
+
+        // Add all live items confirmed on Archive.org
+        archiveDocs.forEach(doc => {
+          const id = doc.identifier;
+          seenIdentifiers.add(id);
+          const detailsUrl = `https://archive.org/details/${id}`;
+          
+          let channel = '@landy_tv';
+          let genTime = doc.publicdate ? new Date(doc.publicdate).getTime() : Date.now();
+          let pdfFileName = '';
+
+          // Match in Firebase by title or slug
+          for (const k in firebaseData) {
+            const fbItem = firebaseData[k];
+            if (fbItem.title && doc.title && (
+              doc.title.toLowerCase().includes(fbItem.title.toLowerCase().substring(0, 18)) ||
+              fbItem.title.toLowerCase().includes(doc.title.toLowerCase().substring(0, 18)) ||
+              id.includes(k.substring(0, 10))
+            )) {
+              if (fbItem.channel) channel = fbItem.channel;
+              if (fbItem.generatedAt) genTime = fbItem.generatedAt;
+              if (fbItem.pdfFileName) pdfFileName = fbItem.pdfFileName;
+              break;
+            }
+          }
+
+          // Fallback if not in Firebase: generate standard safeName
+          if (!pdfFileName) {
+            const safe = (doc.title || id).replace(/[^a-zA-Z0-9]/g, '-').replace(/-+/g, '-').substring(0, 60);
+            pdfFileName = `${safe}.pdf`;
+          }
+
+          // Direct .PDF Download URL (ranks with [PDF] badge on Google!)
+          const directPdfUrl = `https://archive.org/download/${id}/${encodeURIComponent(pdfFileName)}`;
+
+          allRecords.push({
+            key: id,
+            title: doc.title || id,
+            channel: channel,
+            pdfFileName: pdfFileName,
+            archiveUrl: detailsUrl,
+            directPdfUrl: directPdfUrl,
+            generatedAt: genTime,
+            isLive: true
+          });
+        });
+
+        // Add any Firebase items not yet verified in Archive docs
+        for (const key in firebaseData) {
+          const item = firebaseData[key];
+          const hasDirectArchive = item.archiveUrl && item.archiveUrl.trim() !== '';
+          
+          const alreadyAdded = allRecords.some(r => 
+            r.title.toLowerCase().substring(0, 20) === (item.title || '').toLowerCase().substring(0, 20)
+          );
+
+          if (!alreadyAdded) {
+            allRecords.push({
+              key,
+              title: item.title || 'Untitled Video',
+              channel: item.channel || '@landy_tv',
+              pdfFileName: item.pdfFileName || '',
+              archiveUrl: hasDirectArchive ? item.archiveUrl.trim() : null,
+              directPdfUrl: null,
+              generatedAt: item.generatedAt || null,
+              isLive: Boolean(hasDirectArchive)
+            });
+          }
+        }
+
+        // Sort latest first
+        allRecords.sort((a, b) => (b.generatedAt || 0) - (a.generatedAt || 0));
+
+        // Update stats
+        document.getElementById('totalPdfs').innerText = allRecords.length;
+        const withArchive = allRecords.filter(r => Boolean(r.directPdfUrl || r.archiveUrl)).length;
+        document.getElementById('totalArchiveUrls').innerText = withArchive;
+
+        // Show banner if uploaded count is 0
+        const noticeBanner = document.getElementById('archiveNoticeBanner');
+        if (noticeBanner) {
+          noticeBanner.style.display = (withArchive === 0) ? 'block' : 'none';
+        }
+
+        renderTable(allRecords);
+      } catch (err) {
+        console.error('Data Fetch Error:', err);
+        dbStatus.innerText = 'Sync Error';
+        dbStatus.style.color = 'var(--accent)';
+        loader.style.display = 'none';
+        emptyMessage.innerText = `Failed to load data: ${err.message}.`;
+        emptyMessage.style.display = 'block';
+      }
+    }
+
+    function renderTable(list) {
+      const loader = document.getElementById('loader');
+      const table = document.getElementById('pdfTable');
+      const tbody = document.getElementById('tableBody');
+      const emptyMessage = document.getElementById('emptyMessage');
+
+      tbody.innerHTML = '';
+      loader.style.display = 'none';
+
+      if (!list || list.length === 0) {
+        table.style.display = 'none';
+        emptyMessage.style.display = 'block';
+        return;
+      }
+
+      emptyMessage.style.display = 'none';
+      table.style.display = 'table';
+
+      list.forEach(item => {
+        const tr = document.createElement('tr');
+
+        // Formatted Date
+        let dateStr = 'Recently';
+        if (item.generatedAt) {
+          const d = new Date(item.generatedAt);
+          dateStr = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+        }
+
+        // Google site: check URL (Checks direct PDF rank)
+        let googleCheckUrl = '#';
+        const primaryLink = item.directPdfUrl || item.archiveUrl;
+        if (primaryLink) {
+          const cleanTarget = primaryLink.replace(/^https?:\/\//i, '');
+          googleCheckUrl = `https://www.google.com/search?q=site:${encodeURIComponent(cleanTarget)}`;
+        }
+
+        tr.innerHTML = `
+          <td>
+            <div class="video-title" title="${item.title}">${item.title}</div>
+            <div style="font-size: 0.72rem; color: var(--text-dim); margin-top: 4px; font-family: 'JetBrains Mono', monospace;">
+              📄 ${item.pdfFileName || 'PDF generated'}
+            </div>
+          </td>
+          <td>
+            <span class="channel-badge">${item.channel}</span>
+          </td>
+          <td>
+            ${item.directPdfUrl ? `
+              <div style="display: flex; flex-direction: column; gap: 4px;">
+                <a href="${item.directPdfUrl}" target="_blank" class="url-chip" title="Direct .PDF Download & Ranking URL" style="color: #34d399; background: rgba(52, 211, 153, 0.08); border-color: rgba(52, 211, 153, 0.25);">
+                  📥 ${item.directPdfUrl}
+                </a>
+                <a href="${item.archiveUrl}" target="_blank" style="font-size: 0.72rem; color: #60a5fa; text-decoration: none; padding-left: 2px;">
+                  👁️ Open in Archive.org Viewer
+                </a>
+              </div>
+            ` : item.archiveUrl ? `
+              <a href="${item.archiveUrl}" target="_blank" class="url-chip" title="${item.archiveUrl}">
+                🔗 ${item.archiveUrl}
+              </a>
+            ` : `
+              <span style="display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 6px; background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.25); color: #fbbf24; font-size: 0.76rem; font-weight: 600;">
+                ⚠️ Not Uploaded
+              </span>
+            `}
+          </td>
+          <td style="color: var(--text-muted); font-size: 0.78rem; font-family: 'JetBrains Mono', monospace;">
+            ${dateStr}
+          </td>
+          <td>
+            <div class="table-actions">
+              ${(item.directPdfUrl || item.archiveUrl) ? `
+                <button class="action-icon-btn" onclick="copySingleUrl('${item.directPdfUrl || item.archiveUrl}')" title="Copy Direct .PDF Link">
+                  📋 Copy
+                </button>
+                <a href="${googleCheckUrl}" target="_blank" class="action-icon-btn google-check-btn" title="Check Index Status on Google">
+                  🔍 Google
+                </a>
+              ` : `
+                <span style="color: var(--text-dim); font-size: 0.75rem;">-</span>
+              `}
+            </div>
+          </td>
+        `;
+
+        tbody.appendChild(tr);
+      });
+    }
+
+    function filterData() {
+      const q = document.getElementById('searchInput').value.toLowerCase().trim();
+      if (!q) {
+        renderTable(allRecords);
+        return;
+      }
+      const filtered = allRecords.filter(r => 
+        (r.title || '').toLowerCase().includes(q) ||
+        (r.channel || '').toLowerCase().includes(q) ||
+        (r.directPdfUrl || '').toLowerCase().includes(q) ||
+        (r.archiveUrl || '').toLowerCase().includes(q) ||
+        (r.pdfFileName || '').toLowerCase().includes(q)
+      );
+      renderTable(filtered);
+    }
+
+    function getSelectedFormatUrls() {
+      const format = document.querySelector('input[name="urlFormat"]:checked')?.value || 'directPdf';
+      if (format === 'directPdf') {
+        return allRecords
+          .map(r => r.directPdfUrl || r.archiveUrl)
+          .filter(url => Boolean(url));
+      } else {
+        return allRecords
+          .map(r => r.archiveUrl)
+          .filter(url => Boolean(url));
+      }
+    }
+
+    function updateModalUrls() {
+      const urls = getSelectedFormatUrls();
+      const textarea = document.getElementById('bulkUrlTextarea');
+      textarea.value = urls.join('\n');
+    }
+
+    function openBulkCopyModal() {
+      updateModalUrls();
+      const urls = getSelectedFormatUrls();
+      if (urls.length === 0) {
+        showToast('No Live URLs found to copy yet.');
+        return;
+      }
+      document.getElementById('bulkModal').style.display = 'flex';
+    }
+
+    function closeBulkCopyModal(e) {
+      document.getElementById('bulkModal').style.display = 'none';
+    }
+
+    function copyModalContent() {
+      const textarea = document.getElementById('bulkUrlTextarea');
+      navigator.clipboard.writeText(textarea.value).then(() => {
+        showToast(`Copied ${getSelectedFormatUrls().length} URLs to clipboard!`);
+        closeBulkCopyModal();
+      });
+    }
+
+    function copySingleUrl(url) {
+      navigator.clipboard.writeText(url).then(() => {
+        showToast('Link copied to clipboard!');
+      });
+    }
+
+    function exportToTxt() {
+      const urls = getSelectedFormatUrls();
+      if (urls.length === 0) {
+        showToast('No URLs available to export.');
+        return;
+      }
+      const format = document.querySelector('input[name="urlFormat"]:checked')?.value || 'directPdf';
+      const blob = new Blob([urls.join('\n')], { type: 'text/plain' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `archive_${format}_urls_${Date.now()}.txt`;
+      a.click();
+      showToast('Exported .TXT file successfully!');
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      toast.innerText = msg;
+      toast.style.display = 'block';
+      setTimeout(() => {
+        toast.style.display = 'none';
+      }, 2500);
+    }
+
+    // Auto-run on load
+    window.addEventListener('DOMContentLoaded', loadFirebaseData);
+  </script>
+</body>
+</html>

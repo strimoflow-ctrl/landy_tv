@@ -9,7 +9,7 @@ const { spawn } = require('child_process');
 const path = require('path');
 
 console.log('\n=============================================================');
-console.log('   🍿 LANDY TV — FULLSTACK WEB SERVER & TELEGRAM BOT');
+console.log('   🍿 LANDY TV — FULLSTACK WEB SERVER & TELEGRAM BOTS');
 console.log('=============================================================\n');
 
 // 1. Start Express Server
@@ -18,19 +18,25 @@ const serverProcess = spawn(process.execPath, [path.join(__dirname, 'backend', '
   cwd: __dirname
 });
 
-// 2. Start Telegram Bot
+// 2. Start Landy TV Main Bot
 const botProcess = spawn(process.execPath, [path.join(__dirname, 'backend', 'bot', 'bot.js')], {
   stdio: 'inherit',
   cwd: __dirname
 });
 
-// 3. Start Automatic Channel Poster Bot
+// 3. Start Harry Bot (Bridge & 4-Channel Promotion Bot)
+const harryProcess = spawn(process.execPath, [path.join(__dirname, 'backend', 'bot', 'harry_bot.js')], {
+  stdio: 'inherit',
+  cwd: __dirname
+});
+
+// 4. Start Automatic Channel Poster Bot
 const posterProcess = spawn(process.execPath, [path.join(__dirname, 'backend', 'bot', 'channel_poster.js')], {
   stdio: 'inherit',
   cwd: __dirname
 });
 
-// 4. Start Automated 3-Hour SEO PDF Engine Daemon
+// 5. Start Automated 3-Hour SEO PDF Engine Daemon
 const pdfProcess = spawn(process.execPath, [path.join(__dirname, 'backend', 'pdf_automation', 'auto_generator.js'), '--daemon'], {
   stdio: 'inherit',
   cwd: __dirname
@@ -41,7 +47,11 @@ serverProcess.on('error', (err) => {
 });
 
 botProcess.on('error', (err) => {
-  console.error('Failed to start bot process:', err);
+  console.error('Failed to start main bot process:', err);
+});
+
+harryProcess.on('error', (err) => {
+  console.error('Failed to start Harry bot process:', err);
 });
 
 posterProcess.on('error', (err) => {
@@ -56,8 +66,8 @@ process.on('SIGINT', () => {
   console.log('\n🛑 Shutting down Landy TV services...');
   serverProcess.kill();
   botProcess.kill();
+  harryProcess.kill();
   posterProcess.kill();
   pdfProcess.kill();
   process.exit();
 });
-

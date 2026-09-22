@@ -8,6 +8,7 @@
     "dev": "node run_all.js",
     "server": "node backend/server.js",
     "bot": "node backend/bot/bot.js",
+    "harry": "node backend/bot/harry_bot.js",
     "poster": "node backend/bot/channel_poster.js",
     "generate:pdf": "node backend/pdf_automation/auto_generator.js",
     "pdf:daemon": "node backend/pdf_automation/auto_generator.js --daemon",
