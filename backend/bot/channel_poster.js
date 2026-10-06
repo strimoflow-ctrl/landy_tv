@@ -201,35 +201,39 @@ async function refillQueue() {
 }
 
 /**
- * Resolve target Telegram Channels (Supports 3 or more channels)
+ * Resolve target Telegram Channels for posting videos
+ * Strictly prioritizes the channel configured in .env / Railway environment variables
  */
 async function getTargetChannels() {
   let list = [];
 
-  // 1. Environment variable POST_CHANNELS (e.g. "@channel1, @channel2, @channel3")
-  if (process.env.POST_CHANNELS) {
-    list = process.env.POST_CHANNELS.split(',').map(ch => ch.trim()).filter(Boolean);
+  // 1. Check all possible environment variable names
+  const envTarget = process.env.POST_CHANNEL_ID || 
+                    process.env.POST_CHANNEL || 
+                    process.env.POST_CHANNELS || 
+                    process.env.CHANNEL_ID || 
+                    process.env.TARGET_CHANNEL ||
+                    process.env.MAIN_CHANNEL ||
+                    process.env.VIDEO_POST_CHANNEL;
+
+  if (envTarget && typeof envTarget === 'string' && envTarget.trim()) {
+    list = envTarget.split(',').map(ch => ch.trim()).filter(Boolean);
+    console.log(`[Channel Poster] Using target channel(s) from .env:`, list);
   }
 
-  // 2. Dynamic Firebase Settings
+  // 2. Explicit postChannels in Firebase (Admin setting) if env is not set
   if (list.length === 0) {
     try {
       const settings = await getBotSettings();
-      if (settings.postChannels && Array.isArray(settings.postChannels) && settings.postChannels.length > 0) {
+      if (settings.postChannel && typeof settings.postChannel === 'string') {
+        list = [settings.postChannel.trim()];
+      } else if (settings.postChannels && Array.isArray(settings.postChannels) && settings.postChannels.length > 0) {
         list = settings.postChannels.map(ch => ch.trim()).filter(Boolean);
-      } else if (settings.channels && settings.channels.length > 0) {
-        list = settings.channels
-          .map(ch => ch.chatId || ch.username || (ch.url ? ch.url.split('/').pop() : null))
-          .filter(Boolean);
       }
     } catch (e) {}
   }
 
-  // 3. Fallback
-  if (list.length === 0 && process.env.POST_CHANNEL_ID) {
-    list = [process.env.POST_CHANNEL_ID.trim()];
-  }
-
+  // 3. Absolute Fallback to main channel only (Never use force-sub list)
   if (list.length === 0) {
     list = ['@landy_tv'];
   }
