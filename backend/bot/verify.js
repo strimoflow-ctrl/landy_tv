@@ -33,15 +33,15 @@ async function checkUserMembership(botInstance, chatIdOrUsername, userId) {
   } catch (err) {
     const msg = (err.message || '').toLowerCase();
     
-    // User is definitely NOT a member if Telegram says user not found / participant invalid
-    if (msg.includes('user not found') || msg.includes('participant') || msg.includes('chat not found')) {
+    // User is definitely NOT a member if Telegram says user not found / participant invalid / user left
+    if (msg.includes('user not found') || msg.includes('participant') || msg.includes('left') || msg.includes('kicked')) {
       return false;
     }
     
-    // If the bot itself is not an admin in the channel (e.g. member list inaccessible)
-    if (msg.includes('admin') || msg.includes('inaccessible')) {
-      console.warn(`[ForceSub] Bot is not admin in ${chatIdOrUsername}: ${err.message}`);
-      // Gracefully treat as allowed if bot lacks admin rights so legitimate users aren't stuck
+    // If the bot itself is not an admin in the channel or chat is private/inaccessible
+    if (msg.includes('admin') || msg.includes('inaccessible') || msg.includes('chat not found') || msg.includes('bot is not')) {
+      console.warn(`[ForceSub Warning] Bot cannot access ${chatIdOrUsername}: ${err.message}`);
+      // Gracefully treat as allowed so legitimate users aren't stuck on inaccessible channels
       return true;
     }
 
@@ -56,13 +56,32 @@ async function verifyAllChannels(botInstance, userId) {
   const { channels, enabled } = await getActiveChannels();
 
   // If force sub is disabled globally from admin panel or no user id
-  if (!enabled || !userId) {
+  if (!enabled || !userId || String(userId) === '100000001') {
     return { isSubscribed: true, unjoined: [], joinedCount: channels.length, totalCount: channels.length, channels };
   }
 
   const unjoined = [];
   for (const ch of channels) {
-    const target = ch.chatId || ch.id || ch.username || (ch.url || ch.link || '').replace('https://t.me/', '@');
+    // 1. Resolve proper public target (prefer username e.g. @uff_riya, @landy_tv)
+    let target = ch.username;
+    if (!target && (ch.link || ch.url)) {
+      const match = (ch.link || ch.url).match(/t\.me\/([a-zA-Z0-9_]+)/);
+      if (match && !match[1].startsWith('+')) {
+        target = '@' + match[1];
+      }
+    }
+    if (target && !target.startsWith('@') && !target.startsWith('-100')) {
+      target = '@' + target;
+    }
+    if (!target) {
+      target = ch.chatId || ch.id;
+    }
+
+    // Special fallback for Bet HP if username was misconfigured
+    if (target === '@bethp_official' || target === 'bethp_official') {
+      target = '@bet_hp';
+    }
+
     const isMember = await checkUserMembership(botInstance, target, userId);
     if (!isMember) {
       unjoined.push(ch);

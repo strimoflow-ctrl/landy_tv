@@ -21,8 +21,23 @@ export default function ForceSubModal({ unjoined = [], onVerifySuccess }) {
   const total = channels.length || 4;
   const remaining = channels.length;
 
-  const handleOpenChannel = (url) => {
+  const getChannelUrl = (ch) => {
+    if (!ch) return 'https://t.me/landy_tv';
+    if (typeof ch === 'string') return ch;
+    let url = ch.link || ch.url;
+    if (!url && ch.username) {
+      const cleanUser = ch.username.replace('@', '').trim();
+      url = `https://t.me/${cleanUser}`;
+    }
+    return url || 'https://t.me/landy_tv';
+  };
+
+  const handleOpenChannel = (ch) => {
+    const url = getChannelUrl(ch);
     try {
+      if (window.Telegram?.WebApp?.HapticFeedback?.impactOccurred) {
+        window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
+      }
       if (window.Telegram?.WebApp?.openTelegramLink) {
         window.Telegram.WebApp.openTelegramLink(url);
       } else {
@@ -156,7 +171,7 @@ export default function ForceSubModal({ unjoined = [], onVerifySuccess }) {
           {channels.map((ch, idx) => (
             <button
               key={idx}
-              onClick={() => handleOpenChannel(ch.url)}
+              onClick={() => handleOpenChannel(ch)}
               style={{
                 width: '100%',
                 padding: '13px 18px',
