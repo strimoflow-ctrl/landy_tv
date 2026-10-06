@@ -62,6 +62,7 @@ if (BOT_TOKEN && BOT_TOKEN !== 'YOUR_BOT_TOKEN_HERE') {
   try {
     const mainBot = new TelegramBot(BOT_TOKEN, { 
       polling: {
+        autoStart: true,
         params: {
           allowed_updates: ["message", "callback_query", "chat_member", "my_chat_member"]
         }
@@ -69,47 +70,80 @@ if (BOT_TOKEN && BOT_TOKEN !== 'YOUR_BOT_TOKEN_HERE') {
     });
     mainBotInstance = mainBot;
 
-    // Command: /start
-    mainBot.onText(/\/start(.*)/, async (msg, match) => {
+    // Delete any active webhook to guarantee polling receives all updates immediately
+    mainBot.deleteWebHook().catch(() => {});
+
+    // Common function to process user message / start
+    async function handleUserStart(msg, startParam = '') {
       const chatId = msg.chat.id;
       const user = msg.from;
-      const startParam = match[1] ? match[1].trim() : '';
 
-      if (!user) return;
+      if (!user || user.is_bot) return;
 
-      // Check if blocked
-      const blocked = await isUserBlocked(user.id);
-      if (blocked) {
-        return mainBot.sendMessage(chatId, '🚫 Your account has been suspended by the administrator.');
-      }
+      console.log(`[Main Bot] Received message from user: ${user.id} (@${user.username || user.first_name})`);
 
-      // Save user to Firebase
-      await saveOrUpdateUser(user);
+      try {
+        // Check if blocked
+        const blocked = await isUserBlocked(user.id);
+        if (blocked) {
+          return mainBot.sendMessage(chatId, '🚫 Your account has been suspended by the administrator.').catch(() => {});
+        }
 
-      // Strict Dynamic Check for 4 channels
-      const { isSubscribed, unjoined } = await verifyAllChannels(mainBot, user.id);
+        // Save user to Firebase
+        await saveOrUpdateUser(user);
 
-      if (!isSubscribed) {
-        const { text, keyboard } = buildDynamicLockMessage(unjoined, 'verify_main', startParam || 'none');
-        return mainBot.sendMessage(chatId, text, {
+        // Strict Dynamic Check for 4 channels
+        const { isSubscribed, unjoined } = await verifyAllChannels(mainBot, user.id);
+
+        if (!isSubscribed) {
+          const { text, keyboard } = buildDynamicLockMessage(unjoined, 'verify_main', startParam || 'none');
+          return mainBot.sendMessage(chatId, text, {
+            parse_mode: 'Markdown',
+            disable_web_page_preview: true,
+            reply_markup: { inline_keyboard: keyboard }
+          }).catch(err => {
+            console.error('Main Bot lock send error (retrying plain):', err.message);
+            return mainBot.sendMessage(chatId, text.replace(/[*_`]/g, ''), {
+              disable_web_page_preview: true,
+              reply_markup: { inline_keyboard: keyboard }
+            }).catch(e => console.error('Main bot lock failed:', e.message));
+          });
+        }
+
+        // Unlocked
+        let appUrl = WEB_APP_URL;
+        if (startParam && startParam !== 'none') {
+          appUrl = `${WEB_APP_URL}?start=${encodeURIComponent(startParam)}`;
+        }
+
+        const keyboard = getAppLaunchButtons(appUrl);
+        mainBot.sendMessage(chatId, DEFAULT_WELCOME_MSG, {
           parse_mode: 'Markdown',
           disable_web_page_preview: true,
           reply_markup: { inline_keyboard: keyboard }
-        }).catch(err => console.error('Main Bot send error:', err.message));
+        }).catch(err => {
+          console.error('Main Bot send error (retrying plain):', err.message);
+          return mainBot.sendMessage(chatId, DEFAULT_WELCOME_MSG.replace(/[*_`]/g, ''), {
+            disable_web_page_preview: true,
+            reply_markup: { inline_keyboard: keyboard }
+          }).catch(e => console.error('Main bot welcome failed:', e.message));
+        });
+      } catch (err) {
+        console.error('Error in handleUserStart:', err.message);
       }
+    }
 
-      // Unlocked
-      let appUrl = WEB_APP_URL;
-      if (startParam) {
-        appUrl = `${WEB_APP_URL}?start=${encodeURIComponent(startParam)}`;
-      }
+    // Command: /start
+    mainBot.onText(/\/start(.*)/, async (msg, match) => {
+      const startParam = match[1] ? match[1].trim() : '';
+      await handleUserStart(msg, startParam);
+    });
 
-      const keyboard = getAppLaunchButtons(appUrl);
-      mainBot.sendMessage(chatId, DEFAULT_WELCOME_MSG, {
-        parse_mode: 'Markdown',
-        disable_web_page_preview: true,
-        reply_markup: { inline_keyboard: keyboard }
-      }).catch(err => console.error('Main Bot send error:', err.message));
+    // Handle any message that is not a command
+    mainBot.on('message', async (msg) => {
+      if (msg.text && msg.text.startsWith('/start')) return; // Already handled
+      if (msg.chat.type !== 'private') return; // Only in private chat
+      await handleUserStart(msg, '');
     });
 
     // Callback query for verification (Dynamic Remaining Channel Updates)

@@ -25,7 +25,7 @@ async function getActiveChannels() {
  * Check if a user is a member of a given channel/chat.
  */
 async function checkUserMembership(botInstance, chatIdOrUsername, userId) {
-  if (!botInstance || !userId) return false;
+  if (!botInstance || !userId || !chatIdOrUsername) return false;
   try {
     const member = await botInstance.getChatMember(chatIdOrUsername, userId);
     const validStatuses = ['creator', 'administrator', 'member', 'restricted'];
@@ -62,7 +62,7 @@ async function verifyAllChannels(botInstance, userId) {
 
   const unjoined = [];
   for (const ch of channels) {
-    const target = ch.username || ch.chatId || ch.url.replace('https://t.me/', '@');
+    const target = ch.chatId || ch.id || ch.username || (ch.url || ch.link || '').replace('https://t.me/', '@');
     const isMember = await checkUserMembership(botInstance, target, userId);
     if (!isMember) {
       unjoined.push(ch);
@@ -85,12 +85,20 @@ function buildDynamicLockMessage(unjoined, callbackPrefix = 'verify_main', start
   const remaining = unjoined.length;
 
   let text = 
-    `Welcome to **Landy TV**! 💦\n\n` +
-    `To access Landy TV and stream all premium uncut videos, you must join the **${remaining} official Telegram channel${remaining > 1 ? 's' : ''}** below:`;
+    `Welcome to *Landy TV*! 💦\n\n` +
+    `To access Landy TV and stream all premium uncut videos, you must join the *${remaining} official Telegram channel${remaining > 1 ? 's' : ''}* below:`;
 
   const keyboard = [];
   unjoined.forEach(ch => {
-    keyboard.push([{ text: ch.name, url: ch.url }]);
+    const title = ch.name ? (ch.name.startsWith('📢') ? ch.name : `📢 Join ${ch.name}`) : '📢 Join Channel';
+    let url = ch.url || ch.link;
+    if (!url && ch.username) {
+      url = `https://t.me/${ch.username.replace('@', '')}`;
+    }
+    if (!url) {
+      url = 'https://t.me/landy_tv';
+    }
+    keyboard.push([{ text: title, url: url }]);
   });
 
   keyboard.push([
