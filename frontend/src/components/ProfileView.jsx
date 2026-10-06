@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { Send, MessageSquare, ShieldCheck, Sparkles, Trash2 } from 'lucide-react';
+import { getTelegramUser } from '../utils/telegram';
 
-export default function ProfileView() {
-  const [tgUser, setTgUser] = useState(null);
+export default function ProfileView({ user: propUser }) {
+  const [tgUser, setTgUser] = useState(() => propUser || getTelegramUser());
 
   useEffect(() => {
-    const tg = window.Telegram?.WebApp;
-    if (tg?.initDataUnsafe?.user) {
-      setTgUser(tg.initDataUnsafe.user);
+    const u = propUser || getTelegramUser();
+    if (u) {
+      setTgUser(u);
     }
-  }, []);
+  }, [propUser]);
 
   const openTelegramLink = (url) => {
     const tg = window.Telegram?.WebApp;

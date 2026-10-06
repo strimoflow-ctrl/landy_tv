@@ -10,6 +10,7 @@ import EarnTimeView from './components/EarnTimeView';
 import ForceSubModal from './components/ForceSubModal';
 import { fetchVideos, searchVideos } from './utils/api';
 import { syncSavedVideosFromFirebase } from './utils/storage';
+import { getTelegramUser, initTelegramApp } from './utils/telegram';
 
 export default function App() {
   const [activeNav, setActiveNav] = useState('home');
@@ -18,6 +19,10 @@ export default function App() {
   const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(false);
   const [currentVideo, setCurrentVideo] = useState(null);
+
+  // User Identity from Telegram
+  const [tgUser, setTgUser] = useState(() => getTelegramUser());
+  const userId = tgUser?.id || 'guest_user';
 
   // User Watch Time & Ad Packs State
   const [watchTimeSeconds, setWatchTimeSeconds] = useState(180);
@@ -37,13 +42,20 @@ export default function App() {
   // Ref to prevent duplicate concurrent page loads
   const loadingRef = useRef(false);
 
-  const tg = window.Telegram?.WebApp;
-  const userId = tg?.initDataUnsafe?.user?.id || 'guest_user';
+  // Initialize Telegram WebApp features
+  useEffect(() => {
+    initTelegramApp();
+    const user = getTelegramUser();
+    if (user) {
+      setTgUser(user);
+    }
+  }, []);
 
   // Sync user activity to Firebase (record lastActive timestamp & fetch latest watch time/packs)
   const syncUserActivity = useCallback(async () => {
-    const user = tg?.initDataUnsafe?.user;
+    const user = getTelegramUser();
     if (user && user.id) {
+      setTgUser(user);
       try {
         const res = await fetch('/api/user/activity', {
           method: 'POST',
@@ -60,9 +72,10 @@ export default function App() {
     }
 
     // Fetch user watch time & packs from Firebase
-    if (userId && userId !== 'guest_user') {
+    const activeUid = user?.id || userId;
+    if (activeUid && activeUid !== 'guest_user') {
       try {
-        const dataRes = await fetch(`/api/user/data?userId=${userId}`);
+        const dataRes = await fetch(`/api/user/data?userId=${activeUid}`);
         const dataJson = await dataRes.json();
         if (dataJson && dataJson.success && dataJson.data) {
           if (dataJson.data.watchTimeSeconds !== undefined) {
@@ -77,16 +90,16 @@ export default function App() {
       }
 
       // Sync Saved Videos from Firebase
-      syncSavedVideosFromFirebase(userId);
+      syncSavedVideosFromFirebase(activeUid);
     }
-  }, [userId, tg]);
+  }, [userId]);
 
   // Live Subscription & Block Checker (Real Telegram Sessions only, bypass on localhost)
   const checkSubscriptionStatus = useCallback(async () => {
-    const tg = window.Telegram?.WebApp;
-    const userId = tg?.initDataUnsafe?.user?.id;
+    const user = getTelegramUser();
+    const activeUid = user?.id;
 
-    if (!userId || String(userId) === '100000001') {
+    if (!activeUid || String(activeUid) === '100000001') {
       const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
       if (isLocalhost) {
         setIsSubscribed(true);
@@ -94,9 +107,9 @@ export default function App() {
       }
     }
 
-    if (userId) {
+    if (activeUid) {
       try {
-        const res = await fetch(`/api/check-subscription?userId=${userId}`);
+        const res = await fetch(`/api/check-subscription?userId=${activeUid}`);
         const data = await res.json();
         if (data) {
           if (data.isBlocked) {
@@ -338,7 +351,7 @@ export default function App() {
         )}
 
         {activeNav === 'profile' && (
-          <ProfileView />
+          <ProfileView user={tgUser} />
         )}
       </main>
 
