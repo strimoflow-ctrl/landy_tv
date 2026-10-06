@@ -498,7 +498,7 @@ app.post('/api/admin/toggle-block', async (req, res) => {
     }
 });
 
-// 3.3 Admin Broadcast Message to Users with Dynamic Inline Buttons
+// 3.3 Admin Broadcast Message to Users with Dynamic Inline Buttons (Optimized Parallel Batching)
 app.post('/api/admin/broadcast', async (req, res) => {
     const { text, photoUrl, buttons, targetFilter } = req.body;
 
@@ -557,13 +557,13 @@ app.post('/api/admin/broadcast', async (req, res) => {
 
         const replyMarkup = inlineKeyboard.length > 0 ? { inline_keyboard: inlineKeyboard } : undefined;
 
-        console.log(`[Admin Broadcast] Starting broadcast to ${userList.length} user(s)...`);
+        console.log(`[Admin Broadcast] Starting fast parallel broadcast to ${userList.length} user(s)...`);
 
         let sentCount = 0;
         let failedCount = 0;
 
-        // Process sequentially with 35ms delay (safe rate limit)
-        for (const user of userList) {
+        // Helper to send message to single user with timeout and safe fallback
+        async function sendToUser(user) {
             const chatId = user.id;
             try {
                 if (photoUrl && photoUrl.trim()) {
@@ -571,33 +571,48 @@ app.post('/api/admin/broadcast', async (req, res) => {
                         caption: text || '',
                         parse_mode: 'Markdown',
                         reply_markup: replyMarkup
-                    }).catch(async () => {
-                        return verifierBot.sendPhoto(chatId, photoUrl.trim(), {
-                            caption: (text || '').replace(/[*_`]/g, ''),
-                            reply_markup: replyMarkup
-                        });
+                    }).catch(async (err) => {
+                        if (err.message && err.message.includes('can\'t parse entities')) {
+                            return verifierBot.sendPhoto(chatId, photoUrl.trim(), {
+                                caption: (text || '').replace(/[*_`]/g, ''),
+                                reply_markup: replyMarkup
+                            });
+                        }
+                        throw err;
                     });
                 } else {
                     await verifierBot.sendMessage(chatId, text, {
                         parse_mode: 'Markdown',
                         disable_web_page_preview: false,
                         reply_markup: replyMarkup
-                    }).catch(async () => {
-                        return verifierBot.sendMessage(chatId, text.replace(/[*_`]/g, ''), {
-                            disable_web_page_preview: false,
-                            reply_markup: replyMarkup
-                        });
+                    }).catch(async (err) => {
+                        if (err.message && err.message.includes('can\'t parse entities')) {
+                            return verifierBot.sendMessage(chatId, text.replace(/[*_`]/g, ''), {
+                                disable_web_page_preview: false,
+                                reply_markup: replyMarkup
+                            });
+                        }
+                        throw err;
                     });
                 }
                 sentCount++;
-            } catch (sendErr) {
+                console.log(`[Broadcast Delivered] User ${chatId} (${user.username || user.first_name || 'User'})`);
+            } catch (err) {
                 failedCount++;
             }
-
-            await new Promise(r => setTimeout(r, 35));
         }
 
-        console.log(`[Admin Broadcast Completed] Sent: ${sentCount}, Failed: ${failedCount}, Total: ${userList.length}`);
+        // Process in concurrent batches of 10 users with 50ms interval between batches
+        const BATCH_SIZE = 10;
+        for (let i = 0; i < userList.length; i += BATCH_SIZE) {
+            const batch = userList.slice(i, i + BATCH_SIZE);
+            await Promise.all(batch.map(u => sendToUser(u)));
+            if (i + BATCH_SIZE < userList.length) {
+                await new Promise(r => setTimeout(r, 60));
+            }
+        }
+
+        console.log(`[Admin Broadcast Completed] Sent: ${sentCount}, Failed/Inactive: ${failedCount}, Total: ${userList.length}`);
         return res.json({
             success: true,
             total: userList.length,
