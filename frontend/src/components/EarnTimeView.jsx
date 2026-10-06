@@ -1,20 +1,16 @@
 import React, { useState } from 'react';
 import { 
   Zap, 
-  Gift, 
   Play, 
   Sparkles, 
   Award, 
   ShieldCheck, 
   Flame, 
-  CheckCircle2, 
   Clock, 
   Crown, 
   Film, 
-  ChevronRight,
   AlertCircle,
-  Loader2,
-  TrendingUp
+  Loader2
 } from 'lucide-react';
 import { showRewardedAd } from '../utils/monetag';
 
@@ -42,8 +38,8 @@ export default function EarnTimeView({
     return `${m}:${s < 10 ? '0' : ''}${s} Min`;
   };
 
-  const showCelebrationToast = (title, rewardText, bonus = '') => {
-    setCelebration({ title, rewardText, bonus });
+  const showCelebrationToast = (title, rewardText) => {
+    setCelebration({ title, rewardText });
     setTimeout(() => setCelebration(null), 4000);
   };
 
@@ -76,7 +72,7 @@ export default function EarnTimeView({
 
         showCelebrationToast('⚡ Lightning Boost Activated!', '+1 Minute (60s) added to balance!');
       } else {
-        showError(res?.error || 'Ad was closed early. Please watch the full ad to earn time.');
+        showError(res?.error || 'Ad was closed early. Please watch full ad to claim time.');
       }
     } catch (err) {
       console.error('Ad Error:', err);
@@ -119,7 +115,7 @@ export default function EarnTimeView({
             }).catch(e => console.warn('Reward sync error:', e));
           }
 
-          showCelebrationToast(`🎉 ${packTitle} Unlocked!`, `+${rewardMinutes} Minutes credited!`, 'BONUS REWARD CLAIMED');
+          showCelebrationToast(`🎉 ${packTitle} Unlocked!`, `+${rewardMinutes} Minutes credited to balance!`);
         } else {
           // Increment progress count
           setAdPacksProgress(prev => ({ ...prev, [packId]: currentCount }));
@@ -155,7 +151,7 @@ export default function EarnTimeView({
     }
   };
 
-  // Battery percentage for balance gauge (max 1 hour / 3600s as 100%)
+  // Battery percentage for balance gauge
   const batteryPct = Math.min(100, Math.round((watchTimeSeconds / 3600) * 100));
   const approxVideos = Math.max(1, Math.floor(watchTimeSeconds / 60));
 
@@ -166,11 +162,9 @@ export default function EarnTimeView({
       target: 5,
       rewardMinutes: 5,
       badge: '5 Min Pass',
-      badgeColor: 'from-blue-500 to-cyan-500',
-      icon: <Sparkles className="w-5 h-5 text-cyan-400" />,
-      tag: '1 Ad = 1 Min',
-      gradient: 'from-cyan-950/40 via-slate-900/60 to-slate-950/80',
-      borderColor: 'border-cyan-500/30 hover:border-cyan-400/60'
+      badgeClass: 'badge-cyan',
+      icon: <Sparkles size={20} color="#06b6d4" />,
+      colorClass: 'pack-cyan'
     },
     {
       id: 'pack_10',
@@ -178,11 +172,9 @@ export default function EarnTimeView({
       target: 10,
       rewardMinutes: 12,
       badge: '+2 MIN BONUS',
-      badgeColor: 'from-orange-500 to-amber-500',
-      icon: <Flame className="w-5 h-5 text-orange-400" />,
-      tag: '🔥 POPULAR VALUE',
-      gradient: 'from-orange-950/40 via-slate-900/60 to-slate-950/80',
-      borderColor: 'border-orange-500/30 hover:border-orange-400/60'
+      badgeClass: 'badge-orange',
+      icon: <Flame size={20} color="#f97316" />,
+      colorClass: 'pack-orange'
     },
     {
       id: 'pack_20',
@@ -190,11 +182,9 @@ export default function EarnTimeView({
       target: 20,
       rewardMinutes: 25,
       badge: '+5 MIN BONUS',
-      badgeColor: 'from-purple-500 to-pink-500',
-      icon: <Award className="w-5 h-5 text-purple-400" />,
-      tag: '💎 ULTRA DISCOUNT',
-      gradient: 'from-purple-950/40 via-slate-900/60 to-slate-950/80',
-      borderColor: 'border-purple-500/30 hover:border-purple-400/60'
+      badgeClass: 'badge-purple',
+      icon: <Award size={20} color="#a855f7" />,
+      colorClass: 'pack-purple'
     },
     {
       id: 'pack_50',
@@ -202,258 +192,210 @@ export default function EarnTimeView({
       target: 50,
       rewardMinutes: 120,
       badge: '+70 MIN MEGA BONUS',
-      badgeColor: 'from-rose-500 to-red-600',
-      icon: <Crown className="w-5 h-5 text-yellow-400" />,
-      tag: '👑 2 HOURS UNLIMITED',
-      gradient: 'from-rose-950/50 via-slate-900/60 to-slate-950/80',
-      borderColor: 'border-rose-500/40 hover:border-rose-400/80'
+      badgeClass: 'badge-rose',
+      icon: <Crown size={20} color="#fbbf24" />,
+      colorClass: 'pack-rose'
     }
   ];
 
   return (
-    <div className="pb-28 px-4 pt-3 max-w-md mx-auto space-y-4 select-none animate-fadeIn">
+    <div className="earn-time-container">
 
-      {/* ========================================================= */}
       {/* 1. HOLOGRAPHIC WATCH TIME BALANCE CARD */}
-      {/* ========================================================= */}
-      <div className="relative overflow-hidden rounded-3xl p-5 border border-white/10 bg-gradient-to-br from-slate-900/90 via-slate-900/80 to-slate-950/95 shadow-2xl backdrop-blur-xl">
-        
-        {/* Ambient Neon Glow Backdrops */}
-        <div className="absolute -top-12 -right-12 w-40 h-40 bg-red-500/20 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-12 -left-12 w-40 h-40 bg-cyan-500/15 rounded-full blur-3xl pointer-events-none" />
-
-        <div className="relative z-10 flex items-start justify-between">
+      <div className="earn-hero-card">
+        <div className="earn-hero-header">
           <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold tracking-wider uppercase bg-red-500/15 text-red-400 border border-red-500/30 shadow-sm">
-                <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-ping" />
-                Live Watch Time Balance
-              </span>
+            <div className="earn-pill-badge">
+              <span className="earn-pill-dot"></span>
+              Live Watch Time Balance
             </div>
             
-            <div className="flex items-baseline gap-2 mt-2">
-              <h1 className="text-4xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-100 to-slate-300 font-['Outfit']">
-                {formatTime(watchTimeSeconds)}
-              </h1>
+            <div className="earn-balance-value">
+              {formatTime(watchTimeSeconds)}
             </div>
 
-            <p className="text-[12px] text-slate-400 font-medium mt-1">
+            <p className="earn-balance-desc">
               Stream all uncut videos seamlessly. Refill instantly anytime!
             </p>
           </div>
 
-          {/* Glowing Animated Energy Orb */}
-          <div className="relative flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-tr from-red-600 to-orange-500 shadow-lg shadow-red-500/30 border border-white/20">
-            <Zap className="w-7 h-7 text-white fill-white animate-pulse" />
+          <div className="earn-energy-orb">
+            <Zap size={26} color="#ffffff" fill="#ffffff" />
           </div>
         </div>
 
-        {/* Battery Power Gauge & Stats Bar */}
-        <div className="relative z-10 mt-4 pt-3 border-t border-white/10">
-          <div className="flex justify-between items-center text-[11px] font-bold text-slate-400 mb-1.5">
-            <span className="flex items-center gap-1 text-slate-300">
-              <Clock className="w-3.5 h-3.5 text-cyan-400" />
+        {/* Battery Power Gauge */}
+        <div className="earn-battery-hud">
+          <div className="earn-hud-stats">
+            <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#e2e8f0' }}>
+              <Clock size={14} color="#06b6d4" />
               Power Level: {batteryPct}%
             </span>
-            <span className="flex items-center gap-1 text-amber-300">
-              <Film className="w-3.5 h-3.5" />
+            <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#fcd34d' }}>
+              <Film size={14} />
               ~{approxVideos} Videos Streamable
             </span>
           </div>
 
-          {/* Smooth Gradient Energy Bar */}
-          <div className="w-full h-2 rounded-full bg-slate-800/80 overflow-hidden p-0.5 border border-white/5">
+          <div className="earn-energy-bar-wrap">
             <div 
-              className="h-full rounded-full bg-gradient-to-r from-red-500 via-amber-400 to-emerald-400 transition-all duration-700 shadow-sm"
+              className="earn-energy-bar-fill" 
               style={{ width: `${Math.max(5, batteryPct)}%` }}
             />
           </div>
         </div>
       </div>
 
-      {/* ========================================================= */}
       {/* 2. INSTANT LIGHTNING QUICK BOOST (1 AD = 1 MINUTE) */}
-      {/* ========================================================= */}
-      <div className="relative overflow-hidden rounded-2xl p-4 border border-emerald-500/40 bg-gradient-to-r from-emerald-950/40 via-slate-900/80 to-slate-900/90 shadow-xl backdrop-blur-lg">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/25 border border-emerald-400/30">
-              <Zap className="w-6 h-6 text-white fill-white" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-[14px] font-extrabold text-white">Instant Quick Boost</h3>
-                <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                  +1 Min Free
-                </span>
-              </div>
-              <p className="text-[11px] text-slate-400 mt-0.5">
-                Watch 1 short ad <span className="text-emerald-400 font-bold">→ Get +60s Watch Time</span>
-              </p>
-            </div>
+      <div className="earn-quick-card">
+        <div className="earn-quick-left">
+          <div className="earn-quick-icon">
+            <Zap size={22} color="#ffffff" fill="#ffffff" />
           </div>
-
-          <button
-            onClick={handleQuickWatch}
-            disabled={adLoading}
-            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-[12px] font-extrabold shadow-lg shadow-emerald-500/30 hover:brightness-110 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap cursor-pointer"
-          >
-            {adLoading ? (
-              <Loader2 className="w-4 h-4 animate-spin text-white" />
-            ) : (
-              <Play className="w-3.5 h-3.5 fill-white" />
-            )}
-            <span>Watch (+1m)</span>
-          </button>
+          <div className="earn-quick-content">
+            <div className="earn-quick-title-row">
+              <h3 className="earn-quick-title">Quick Boost</h3>
+              <span className="earn-quick-tag">+1m free</span>
+            </div>
+            <p className="earn-quick-subtitle">
+              Watch 1 ad <strong style={{ color: '#34d399' }}>→ Get +60s Time</strong>
+            </p>
+          </div>
         </div>
+
+        <button
+          onClick={handleQuickWatch}
+          disabled={adLoading}
+          className="earn-quick-btn"
+        >
+          {adLoading ? (
+            <Loader2 size={15} className="animate-spin" />
+          ) : (
+            <Play size={13} fill="#ffffff" />
+          )}
+          <span>Watch (+1m)</span>
+        </button>
       </div>
 
-      {/* ========================================================= */}
       {/* 3. TIERED WATCH TIME PACKS SECTION */}
-      {/* ========================================================= */}
-      <div className="space-y-3 pt-1">
-        <div className="flex items-center justify-between px-1">
-          <div className="flex items-center gap-1.5">
-            <Sparkles className="w-4 h-4 text-red-500" />
-            <h2 className="text-[14px] font-extrabold text-white uppercase tracking-wider font-['Outfit']">
-              Watch Time Packs & Bonus Rewards
-            </h2>
-          </div>
-          <span className="text-[11px] font-bold text-slate-400">
-            Higher Pack = Bigger Bonus 🔥
+      <div className="earn-packs-section">
+        <div className="earn-packs-header">
+          <h2 className="earn-section-title">
+            <Sparkles size={15} color="#ff2a5f" />
+            Watch Time Reward Packs
+          </h2>
+          <span className="earn-section-desc">
+            Complete ad packs to unlock large bonus watch time 🔥
           </span>
         </div>
 
-        {/* Dynamic Pack Cards */}
-        {PACKS.map((pack) => {
-          const currentProgress = adPacksProgress[pack.id] || 0;
-          const isCompleted = currentProgress >= pack.target;
-          const progressPct = Math.min(100, Math.round((currentProgress / pack.target) * 100));
+        <div className="earn-packs-list">
+          {PACKS.map((pack) => {
+            const currentProgress = adPacksProgress[pack.id] || 0;
+            const isCompleted = currentProgress >= pack.target;
+            const progressPct = Math.min(100, Math.round((currentProgress / pack.target) * 100));
 
-          return (
-            <div 
-              key={pack.id}
-              className={`relative overflow-hidden rounded-2xl p-4 border transition-all duration-300 bg-gradient-to-br ${pack.gradient} ${pack.borderColor} shadow-lg backdrop-blur-md`}
-            >
-              {/* Header: Title, Icon & Reward Badge */}
-              <div className="flex items-start justify-between gap-2 mb-3">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-10 h-10 rounded-xl bg-slate-800/80 border border-white/10 flex items-center justify-center shadow-inner">
-                    {pack.icon}
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h4 className="text-[14px] font-extrabold text-white font-['Outfit']">
-                        {pack.title}
-                      </h4>
+            return (
+              <div 
+                key={pack.id}
+                className={`earn-pack-card ${pack.colorClass}`}
+              >
+                {/* Header */}
+                <div className="earn-pack-top">
+                  <div className="earn-pack-info">
+                    <div className="earn-pack-avatar">
+                      {pack.icon}
                     </div>
-                    <p className="text-[11px] text-slate-400 font-medium">
-                      Total Reward: <strong className="text-white">+{pack.rewardMinutes} Minutes</strong> ({pack.rewardMinutes * 60}s)
-                    </p>
+                    <div className="earn-pack-text">
+                      <h4 className="earn-pack-title">{pack.title}</h4>
+                      <p className="earn-pack-reward">
+                        Reward: <strong>+{pack.rewardMinutes} Min</strong> ({pack.rewardMinutes * 60}s)
+                      </p>
+                    </div>
                   </div>
+
+                  <span className={`earn-pack-badge ${pack.badgeClass}`}>
+                    {pack.badge}
+                  </span>
                 </div>
 
-                <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold tracking-wide uppercase bg-gradient-to-r ${pack.badgeColor} text-white shadow-sm`}>
-                  {pack.badge}
-                </span>
-              </div>
-
-              {/* Progress Track & Count */}
-              <div className="space-y-1.5 mb-3.5">
-                <div className="flex justify-between items-center text-[11px] font-bold">
-                  <span className="text-slate-400">Progress</span>
-                  <span className="text-white font-extrabold">
+                {/* Progress Bar */}
+                <div className="earn-pack-progress-row">
+                  <span style={{ color: '#94a3b8' }}>Progress</span>
+                  <span style={{ color: '#ffffff', fontWeight: 800 }}>
                     {currentProgress} / {pack.target} Ads
                   </span>
                 </div>
 
-                {/* Segmented Progress Bar */}
-                <div className="w-full h-2 rounded-full bg-slate-950/80 p-0.5 border border-white/10 overflow-hidden">
+                <div className="earn-energy-bar-wrap">
                   <div 
-                    className="h-full rounded-full bg-gradient-to-r from-red-500 via-pink-500 to-cyan-400 transition-all duration-500 shadow-sm"
+                    className="earn-energy-bar-fill" 
                     style={{ width: `${Math.max(4, progressPct)}%` }}
                   />
                 </div>
-              </div>
 
-              {/* Action Button */}
-              <button
-                onClick={() => handlePackWatch(pack.id, pack.target, pack.rewardMinutes, pack.title)}
-                disabled={adLoading}
-                className="w-full py-2.5 px-4 rounded-xl font-extrabold text-[12px] flex items-center justify-center gap-2 bg-slate-800/90 hover:bg-slate-700/90 text-white border border-white/10 shadow-md active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-              >
-                {adLoading ? (
-                  <Loader2 className="w-4 h-4 animate-spin text-white" />
-                ) : (
-                  <Play className="w-3.5 h-3.5 fill-white text-white" />
-                )}
-                <span>
-                  {isCompleted
-                    ? `🎉 Claim +${pack.rewardMinutes} Min Now!`
-                    : `Watch Ad (${currentProgress}/${pack.target})`}
-                </span>
-              </button>
-            </div>
-          );
-        })}
+                {/* Action Button */}
+                <button
+                  onClick={() => handlePackWatch(pack.id, pack.target, pack.rewardMinutes, pack.title)}
+                  disabled={adLoading}
+                  className={`earn-pack-btn ${isCompleted ? 'ready-claim' : ''}`}
+                >
+                  {adLoading ? (
+                    <Loader2 size={15} className="animate-spin" />
+                  ) : (
+                    <Play size={13} fill="#ffffff" />
+                  )}
+                  <span>
+                    {isCompleted
+                      ? `🎉 Claim +${pack.rewardMinutes} Min Now!`
+                      : `Watch Ad (${currentProgress}/${pack.target})`}
+                  </span>
+                </button>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
-      {/* ========================================================= */}
-      {/* 4. LOADING OVERLAY MODAL */}
-      {/* ========================================================= */}
+      {/* 4. LOADING OVERLAY */}
       {adLoading && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md animate-fadeIn">
-          <div className="bg-slate-900 border border-white/20 p-6 rounded-3xl max-w-xs w-full text-center shadow-2xl space-y-4">
-            <div className="relative mx-auto w-16 h-16 flex items-center justify-center">
-              <div className="absolute inset-0 rounded-full border-4 border-red-500/20 animate-ping" />
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-red-600 to-pink-500 flex items-center justify-center shadow-lg shadow-red-500/40">
-                <Play className="w-7 h-7 text-white fill-white animate-pulse" />
-              </div>
-            </div>
-
+        <div className="earn-loader-overlay">
+          <div className="earn-loader-box">
+            <div className="earn-loader-spinner"></div>
             <div>
-              <h3 className="text-base font-extrabold text-white">Opening Rewarded Ad...</h3>
-              <p className="text-[12px] text-slate-400 mt-1">
+              <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#fff' }}>Opening Rewarded Ad...</h3>
+              <p style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '4px' }}>
                 {loadingMessage || 'Please watch full ad to verify and credit watch time.'}
               </p>
             </div>
-
-            <div className="flex items-center justify-center gap-2 text-[11px] font-bold text-amber-400 bg-amber-500/10 py-1.5 px-3 rounded-xl border border-amber-500/20">
-              <ShieldCheck className="w-4 h-4" />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.72rem', fontWeight: 700, color: '#fbbf24', background: 'rgba(251, 191, 36, 0.1)', padding: '6px 12px', borderRadius: '10px', border: '1px solid rgba(251, 191, 36, 0.2)' }}>
+              <ShieldCheck size={16} />
               <span>Monetag Verified Rewarded Stream</span>
             </div>
           </div>
         </div>
       )}
 
-      {/* ========================================================= */}
       {/* 5. CELEBRATION TOAST */}
-      {/* ========================================================= */}
       {celebration && (
-        <div className="fixed bottom-20 left-4 right-4 z-[99] animate-bounce">
-          <div className="bg-gradient-to-r from-emerald-600 to-teal-600 p-4 rounded-2xl shadow-2xl border border-emerald-400/40 text-white flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-xl shadow-inner">
-              ⚡
-            </div>
-            <div className="flex-1">
-              <h4 className="font-extrabold text-sm">{celebration.title}</h4>
-              <p className="text-xs text-emerald-100 font-medium">{celebration.rewardText}</p>
-            </div>
+        <div className="earn-toast-celebration">
+          <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>
+            ⚡
+          </div>
+          <div style={{ flex: 1 }}>
+            <h4 style={{ fontWeight: 800, fontSize: '0.85rem' }}>{celebration.title}</h4>
+            <p style={{ fontSize: '0.75rem', opacity: 0.9 }}>{celebration.rewardText}</p>
           </div>
         </div>
       )}
 
-      {/* ========================================================= */}
-      {/* 6. ERROR / NOTICE TOAST */}
-      {/* ========================================================= */}
+      {/* 6. ERROR TOAST */}
       {errorToast && (
-        <div className="fixed bottom-20 left-4 right-4 z-[99] animate-fadeIn">
-          <div className="bg-gradient-to-r from-red-600 to-rose-700 p-4 rounded-2xl shadow-2xl border border-red-400/40 text-white flex items-center gap-3">
-            <AlertCircle className="w-6 h-6 text-white shrink-0" />
-            <div className="flex-1">
-              <h4 className="font-extrabold text-sm">Ad Incomplete</h4>
-              <p className="text-xs text-rose-100 font-medium">{errorToast}</p>
-            </div>
+        <div className="earn-toast-error">
+          <AlertCircle size={22} color="#ffffff" style={{ flexShrink: 0 }} />
+          <div style={{ flex: 1 }}>
+            <h4 style={{ fontWeight: 800, fontSize: '0.85rem' }}>Ad Notice</h4>
+            <p style={{ fontSize: '0.75rem', opacity: 0.9 }}>{errorToast}</p>
           </div>
         </div>
       )}
