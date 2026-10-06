@@ -80,7 +80,7 @@ if (BOT_TOKEN && BOT_TOKEN !== 'YOUR_BOT_TOKEN_HERE') {
 
       if (!user || user.is_bot) return;
 
-      console.log(`[Main Bot] Received message from user: ${user.id} (@${user.username || user.first_name})`);
+      console.log(`[Main Bot] Received /start from user: ${user.id} (@${user.username || user.first_name})`);
 
       try {
         // Check if blocked
@@ -92,25 +92,7 @@ if (BOT_TOKEN && BOT_TOKEN !== 'YOUR_BOT_TOKEN_HERE') {
         // Save user to Firebase
         await saveOrUpdateUser(user);
 
-        // Strict Dynamic Check for 4 channels
-        const { isSubscribed, unjoined } = await verifyAllChannels(mainBot, user.id);
-
-        if (!isSubscribed) {
-          const { text, keyboard } = buildDynamicLockMessage(unjoined, 'verify_main', startParam || 'none');
-          return mainBot.sendMessage(chatId, text, {
-            parse_mode: 'Markdown',
-            disable_web_page_preview: true,
-            reply_markup: { inline_keyboard: keyboard }
-          }).catch(err => {
-            console.error('Main Bot lock send error (retrying plain):', err.message);
-            return mainBot.sendMessage(chatId, text.replace(/[*_`]/g, ''), {
-              disable_web_page_preview: true,
-              reply_markup: { inline_keyboard: keyboard }
-            }).catch(e => console.error('Main bot lock failed:', e.message));
-          });
-        }
-
-        // Unlocked
+        // Build direct App launch buttons
         let appUrl = WEB_APP_URL;
         if (startParam && startParam !== 'none') {
           appUrl = `${WEB_APP_URL}?start=${encodeURIComponent(startParam)}`;
@@ -144,91 +126,6 @@ if (BOT_TOKEN && BOT_TOKEN !== 'YOUR_BOT_TOKEN_HERE') {
       if (msg.text && msg.text.startsWith('/start')) return; // Already handled
       if (msg.chat.type !== 'private') return; // Only in private chat
       await handleUserStart(msg, '');
-    });
-
-    // Callback query for verification (Dynamic Remaining Channel Updates)
-    mainBot.on('callback_query', async (query) => {
-      const chatId = query.message.chat.id;
-      const user = query.from;
-      const data = query.data;
-
-      if (data && data.startsWith('verify_main_')) {
-        const startParam = data.replace('verify_main_', '');
-        const { isSubscribed, unjoined } = await verifyAllChannels(mainBot, user.id);
-
-        if (!isSubscribed) {
-          await mainBot.answerCallbackQuery(query.id, {
-            text: `⚠️ You still need to join ${unjoined.length} channel(s) below!`,
-            show_alert: true
-          });
-
-          // Dynamically update the message to show ONLY the remaining unjoined channels!
-          const { text, keyboard } = buildDynamicLockMessage(unjoined, 'verify_main', startParam || 'none');
-          return mainBot.editMessageText(text, {
-            chat_id: chatId,
-            message_id: query.message.message_id,
-            parse_mode: 'Markdown',
-            disable_web_page_preview: true,
-            reply_markup: { inline_keyboard: keyboard }
-          }).catch(() => {});
-        }
-
-        await mainBot.answerCallbackQuery(query.id, {
-          text: '🎉 All channels verified! Welcome to Landy TV.'
-        });
-
-        await saveOrUpdateUser(user);
-        mainBot.deleteMessage(chatId, query.message.message_id).catch(() => {});
-
-        let appUrl = WEB_APP_URL;
-        if (startParam && startParam !== 'none') {
-          appUrl = `${WEB_APP_URL}?start=${encodeURIComponent(startParam)}`;
-        }
-
-        const keyboard = getAppLaunchButtons(appUrl);
-        mainBot.sendMessage(chatId, DEFAULT_WELCOME_MSG, {
-          parse_mode: 'Markdown',
-          disable_web_page_preview: true,
-          reply_markup: { inline_keyboard: keyboard }
-        }).catch(err => console.error('Main Bot send error:', err.message));
-      }
-    });
-
-    // Instant Realtime Channel Leave Detection
-    mainBot.on('chat_member', async (update) => {
-      try {
-        const newMember = update.new_chat_member;
-        const oldMember = update.old_chat_member;
-        const user = newMember?.user || oldMember?.user;
-
-        if (!user || user.is_bot) return;
-
-        // If user left or was kicked from any channel
-        if (newMember && (newMember.status === 'left' || newMember.status === 'kicked')) {
-          console.log(`⚠️ [Channel Leave] User ${user.id} (${user.first_name}) left channel ${update.chat?.title || update.chat?.id}`);
-
-          // Check if they are now missing any channel
-          const { isSubscribed, unjoined } = await verifyAllChannels(mainBot, user.id);
-
-          if (!isSubscribed) {
-            const { text, keyboard } = buildDynamicLockMessage(unjoined, 'verify_main', 'none');
-            const alertText = 
-              `⚠️ **Access Revoked!**\n\n` +
-              `Aapne channel leave kar diya hai. Landy TV access resume karne ke liye please channel re-join karein:\n\n` +
-              text;
-
-            mainBot.sendMessage(user.id, alertText, {
-              parse_mode: 'Markdown',
-              disable_web_page_preview: true,
-              reply_markup: { inline_keyboard: keyboard }
-            }).catch(err => {
-              console.warn(`[Leave Alert Notice] Could not message user ${user.id}:`, err.message);
-            });
-          }
-        }
-      } catch (err) {
-        console.error('Error in chat_member handler:', err.message);
-      }
     });
 
     let lastPollingErrTime = 0;

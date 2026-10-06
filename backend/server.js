@@ -498,6 +498,119 @@ app.post('/api/admin/toggle-block', async (req, res) => {
     }
 });
 
+// 3.3 Admin Broadcast Message to Users with Dynamic Inline Buttons
+app.post('/api/admin/broadcast', async (req, res) => {
+    const { text, photoUrl, buttons, targetFilter } = req.body;
+
+    if (!text && !photoUrl) {
+        return res.status(400).json({ success: false, error: 'Message text or photoUrl is required.' });
+    }
+
+    if (!verifierBot) {
+        return res.status(500).json({ success: false, error: 'Telegram Bot is not initialized on server.' });
+    }
+
+    try {
+        const DB_URL = "https://anime-net-a89c9-default-rtdb.asia-southeast1.firebasedatabase.app";
+        const fbRes = await axios.get(`${DB_URL}/users.json`, { timeout: 10000 });
+        const data = fbRes.data || {};
+        let userList = Object.keys(data).map(key => ({
+            id: key,
+            ...data[key]
+        }));
+
+        // Exclude blocked users from broadcasts
+        userList = userList.filter(u => !u.isBlocked);
+
+        const now = Date.now();
+        if (targetFilter === 'active1h') {
+            userList = userList.filter(u => u.lastActive && (now - u.lastActive) < 3600000);
+        } else if (targetFilter === 'active24h') {
+            userList = userList.filter(u => u.lastActive && (now - u.lastActive) < 86400000);
+        } else if (targetFilter === 'active7d') {
+            userList = userList.filter(u => u.lastActive && (now - u.lastActive) < 7 * 86400000);
+        }
+
+        if (userList.length === 0) {
+            return res.json({ success: true, message: 'No users found matching the filter.', sentCount: 0, failedCount: 0, total: 0 });
+        }
+
+        // Format keyboard
+        let inlineKeyboard = [];
+        if (Array.isArray(buttons) && buttons.length > 0) {
+            buttons.forEach(btn => {
+                if (!btn.text) return;
+                const btnObj = { text: btn.text };
+                const url = (btn.url || '').trim();
+                if (btn.isWebApp && url) {
+                    btnObj.web_app = { url };
+                } else if (url) {
+                    btnObj.url = url;
+                } else if (btn.callback_data) {
+                    btnObj.callback_data = btn.callback_data;
+                }
+                if (btnObj.url || btnObj.web_app || btnObj.callback_data) {
+                    inlineKeyboard.push([btnObj]);
+                }
+            });
+        }
+
+        const replyMarkup = inlineKeyboard.length > 0 ? { inline_keyboard: inlineKeyboard } : undefined;
+
+        console.log(`[Admin Broadcast] Starting broadcast to ${userList.length} user(s)...`);
+
+        let sentCount = 0;
+        let failedCount = 0;
+
+        // Process sequentially with 35ms delay (safe rate limit)
+        for (const user of userList) {
+            const chatId = user.id;
+            try {
+                if (photoUrl && photoUrl.trim()) {
+                    await verifierBot.sendPhoto(chatId, photoUrl.trim(), {
+                        caption: text || '',
+                        parse_mode: 'Markdown',
+                        reply_markup: replyMarkup
+                    }).catch(async () => {
+                        return verifierBot.sendPhoto(chatId, photoUrl.trim(), {
+                            caption: (text || '').replace(/[*_`]/g, ''),
+                            reply_markup: replyMarkup
+                        });
+                    });
+                } else {
+                    await verifierBot.sendMessage(chatId, text, {
+                        parse_mode: 'Markdown',
+                        disable_web_page_preview: false,
+                        reply_markup: replyMarkup
+                    }).catch(async () => {
+                        return verifierBot.sendMessage(chatId, text.replace(/[*_`]/g, ''), {
+                            disable_web_page_preview: false,
+                            reply_markup: replyMarkup
+                        });
+                    });
+                }
+                sentCount++;
+            } catch (sendErr) {
+                failedCount++;
+            }
+
+            await new Promise(r => setTimeout(r, 35));
+        }
+
+        console.log(`[Admin Broadcast Completed] Sent: ${sentCount}, Failed: ${failedCount}, Total: ${userList.length}`);
+        return res.json({
+            success: true,
+            total: userList.length,
+            sentCount,
+            failedCount
+        });
+
+    } catch (err) {
+        console.error('[Admin Broadcast Error]:', err.message);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
 // 3.3 Record User Mini App Activity (Last active timestamp & profile)
 app.post('/api/user/activity', async (req, res) => {
     const user = req.body;
