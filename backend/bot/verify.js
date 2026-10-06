@@ -1,11 +1,25 @@
 // Shared Verification & Dynamic Force-Sub Module for Landy TV Network
+const { getBotSettings } = require('../firebase');
 
-const HARDCODED_CHANNELS = [
+const DEFAULT_CHANNELS = [
   { name: "📢 Join Uff Riya 💦", url: "https://t.me/uff_riya", username: "@uff_riya" },
   { name: "📢 Join Viral InstaHub 🔥", url: "https://t.me/viral_instahub", username: "@viral_instahub" },
   { name: "📢 Join Landy TV 🍿", url: "https://t.me/landy_tv", username: "@landy_tv" },
   { name: "📢 Join Bet HP 💎", url: "https://t.me/bet_hp", username: "@bet_hp" }
 ];
+
+async function getActiveChannels() {
+  try {
+    const settings = await getBotSettings();
+    if (settings && Array.isArray(settings.channels) && settings.channels.length > 0) {
+      return {
+        channels: settings.channels,
+        enabled: settings.channelLockEnabled !== false
+      };
+    }
+  } catch (e) {}
+  return { channels: DEFAULT_CHANNELS, enabled: true };
+}
 
 /**
  * Check if a user is a member of a given channel/chat.
@@ -36,17 +50,20 @@ async function checkUserMembership(botInstance, chatIdOrUsername, userId) {
 }
 
 /**
- * Verify user against all 4 hardcoded channels.
+ * Verify user against all dynamic channels from Firebase.
  */
 async function verifyAllChannels(botInstance, userId) {
-  const unjoined = [];
-  
-  if (!userId) {
-    return { isSubscribed: true, unjoined: [], joinedCount: 4, totalCount: HARDCODED_CHANNELS.length };
+  const { channels, enabled } = await getActiveChannels();
+
+  // If force sub is disabled globally from admin panel or no user id
+  if (!enabled || !userId) {
+    return { isSubscribed: true, unjoined: [], joinedCount: channels.length, totalCount: channels.length, channels };
   }
 
-  for (const ch of HARDCODED_CHANNELS) {
-    const isMember = await checkUserMembership(botInstance, ch.username, userId);
+  const unjoined = [];
+  for (const ch of channels) {
+    const target = ch.username || ch.chatId || ch.url.replace('https://t.me/', '@');
+    const isMember = await checkUserMembership(botInstance, target, userId);
     if (!isMember) {
       unjoined.push(ch);
     }
@@ -55,29 +72,21 @@ async function verifyAllChannels(botInstance, userId) {
   return {
     isSubscribed: unjoined.length === 0,
     unjoined,
-    joinedCount: HARDCODED_CHANNELS.length - unjoined.length,
-    totalCount: HARDCODED_CHANNELS.length
+    joinedCount: channels.length - unjoined.length,
+    totalCount: channels.length,
+    channels
   };
 }
 
 /**
  * Build dynamic message text and inline keyboard based on unjoined channels.
- * No channel IDs or URLs in message body; only buttons below.
  */
-function buildDynamicLockMessage(unjoined, callbackPrefix = 'verify_main', startParam = 'none') {
-  const total = HARDCODED_CHANNELS.length;
+function buildDynamicLockMessage(unjoined, callbackPrefix = 'verify_main', startParam = 'none', totalCount = 4) {
   const remaining = unjoined.length;
 
-  let text = '';
-  if (remaining >= total) {
-    text = 
-      `Welcome to **Landy TV**! 💦\n\n` +
-      `To access Landy TV and stream all premium uncut videos, you must join all **4 official Telegram channels** below:`;
-  } else {
-    text = 
-      `Welcome to **Landy TV**! 💦\n\n` +
-      `To access Landy TV and stream all premium uncut videos, you must join the remaining **${remaining} official Telegram channel${remaining > 1 ? 's' : ''}** below:`;
-  }
+  let text = 
+    `Welcome to **Landy TV**! 💦\n\n` +
+    `To access Landy TV and stream all premium uncut videos, you must join the **${remaining} official Telegram channel${remaining > 1 ? 's' : ''}** below:`;
 
   const keyboard = [];
   unjoined.forEach(ch => {
@@ -92,8 +101,9 @@ function buildDynamicLockMessage(unjoined, callbackPrefix = 'verify_main', start
 }
 
 module.exports = {
-  HARDCODED_CHANNELS,
+  getActiveChannels,
   checkUserMembership,
   verifyAllChannels,
   buildDynamicLockMessage
 };
+

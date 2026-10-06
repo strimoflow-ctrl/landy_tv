@@ -14,16 +14,15 @@ const DB_URL = firebaseConfig.databaseURL.replace(/\/$/, '');
 
 // Default fallback settings if none in DB
 const DEFAULT_BOT_SETTINGS = {
-  welcomeText: "👋 Hello, **{name}**!\n\nWelcome to **Landy TV** 🍿\n\nStream high quality trending videos and exclusive content directly inside Telegram!",
-  lockMessage: "🔒 **Channel Join Required!**\n\nTo access Landy TV, please join our official Telegram channel.\n\nAfter joining, click the **Verify Membership** button below:",
+  welcomeText: "Welcome to Landy TV! 💦\n\nEnjoy streaming your favorite premium videos directly inside Telegram.\n\nClick the button below to start watching!",
+  lockMessage: "To access Landy TV and stream all premium uncut videos, you must join all official Telegram channels below:",
   channels: [
-    {
-      name: "📢 Join Official Channel",
-      url: "https://t.me/landy_tv",
-      chatId: "@landy_tv"
-    }
+    { name: "📢 Join Uff Riya 💦", url: "https://t.me/uff_riya", username: "@uff_riya" },
+    { name: "📢 Join Viral InstaHub 🔥", url: "https://t.me/viral_instahub", username: "@viral_instahub" },
+    { name: "📢 Join Landy TV 🍿", url: "https://t.me/landy_tv", username: "@landy_tv" },
+    { name: "📢 Join Bet HP 💎", url: "https://t.me/bet_hp", username: "@bet_hp" }
   ],
-  supportUrl: "https://t.me/fufa_jiii",
+  supportUrl: "https://t.me/landy_tv",
   channelLockEnabled: true
 };
 
@@ -93,19 +92,102 @@ async function saveOrUpdateUser(user) {
 
     const payload = {
       id: userId,
-      first_name: user.first_name || '',
-      last_name: user.last_name || '',
-      username: user.username || '',
-      photo_url: user.photo_url || existing?.photo_url || '',
-      isBlocked: existing?.isBlocked || false,
+      first_name: user.first_name !== undefined ? user.first_name : (existing?.first_name || ''),
+      last_name: user.last_name !== undefined ? user.last_name : (existing?.last_name || ''),
+      username: user.username !== undefined ? user.username : (existing?.username || ''),
+      photo_url: user.photo_url !== undefined ? user.photo_url : (existing?.photo_url || ''),
+      isBlocked: typeof user.isBlocked === 'boolean' ? user.isBlocked : Boolean(existing?.isBlocked),
       joinedAt: existing?.joinedAt || now,
-      lastActive: now
+      lastActive: now,
+      // Default 180s (3 minutes) free watch time gift for new users
+      watchTimeSeconds: existing?.watchTimeSeconds !== undefined ? existing.watchTimeSeconds : 180,
+      savedVideos: existing?.savedVideos || [],
+      adPacksProgress: existing?.adPacksProgress || {}
     };
 
     await axios.put(`${DB_URL}/users/${userId}.json`, payload, { timeout: 5000 });
     return payload;
   } catch (err) {
     console.warn(`[Firebase DB] Error saving user ${userId}:`, err.message);
+    return null;
+  }
+}
+
+/**
+ * Get User Data from Firebase
+ */
+async function getUserData(userId) {
+  try {
+    const res = await axios.get(`${DB_URL}/users/${userId}.json`, { timeout: 5000 });
+    return res.data || null;
+  } catch (e) {
+    return null;
+  }
+}
+
+/**
+ * Update User Watch Time (add/subtract delta seconds)
+ */
+async function updateUserWatchTime(userId, deltaSeconds) {
+  try {
+    const uData = await getUserData(userId);
+    let current = uData?.watchTimeSeconds !== undefined ? uData.watchTimeSeconds : 180;
+    let newTime = Math.max(0, current + Number(deltaSeconds));
+    await axios.patch(`${DB_URL}/users/${userId}.json`, { watchTimeSeconds: newTime, lastActive: Date.now() }, { timeout: 5000 });
+    return newTime;
+  } catch (e) {
+    console.warn(`[Firebase DB] Error updating watch time for ${userId}:`, e.message);
+    return null;
+  }
+}
+
+/**
+ * Save / Update User Saved Videos in Firebase
+ */
+async function updateUserSavedVideos(userId, savedVideos) {
+  try {
+    const validList = Array.isArray(savedVideos) ? savedVideos : [];
+    await axios.patch(`${DB_URL}/users/${userId}.json`, { savedVideos: validList, lastActive: Date.now() }, { timeout: 5000 });
+    return validList;
+  } catch (e) {
+    console.warn(`[Firebase DB] Error saving videos for ${userId}:`, e.message);
+    return [];
+  }
+}
+
+/**
+ * Update Ad Pack Progress & Add Bonus Time
+ */
+async function updateAdPackProgress(userId, packId, increment = 1, targetCount = 5, rewardSeconds = 300) {
+  try {
+    const uData = await getUserData(userId);
+    const progress = uData?.adPacksProgress || {};
+    let currentCount = (progress[packId] || 0) + increment;
+    let watchTime = uData?.watchTimeSeconds !== undefined ? uData.watchTimeSeconds : 180;
+    let claimed = false;
+
+    if (currentCount >= targetCount) {
+      currentCount = 0; // Reset after claiming reward
+      watchTime += rewardSeconds;
+      claimed = true;
+    }
+
+    progress[packId] = currentCount;
+
+    await axios.patch(`${DB_URL}/users/${userId}.json`, {
+      adPacksProgress: progress,
+      watchTimeSeconds: watchTime,
+      lastActive: Date.now()
+    }, { timeout: 5000 });
+
+    return {
+      progress: currentCount,
+      target: targetCount,
+      watchTimeSeconds: watchTime,
+      claimed
+    };
+  } catch (e) {
+    console.warn(`[Firebase DB] Error updating ad pack for ${userId}:`, e.message);
     return null;
   }
 }
@@ -230,6 +312,10 @@ module.exports = {
   updateBotSettings,
   saveOrUpdateUser,
   isUserBlocked,
+  getUserData,
+  updateUserWatchTime,
+  updateUserSavedVideos,
+  updateAdPackProgress,
   isVideoAlreadyPosted,
   markVideoPosted,
   isPdfAlreadyGenerated,

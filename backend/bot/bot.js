@@ -11,7 +11,7 @@ const path = require('path');
 const dotenv = require('dotenv');
 const { saveOrUpdateUser, isUserBlocked } = require('../firebase');
 const { 
-  HARDCODED_CHANNELS, 
+  getActiveChannels, 
   verifyAllChannels, 
   buildDynamicLockMessage 
 } = require('./verify');
@@ -22,7 +22,6 @@ dotenv.config({ path: path.join(__dirname, '../.env') });
 dotenv.config({ path: path.join(__dirname, '../../.env') });
 
 const BOT_TOKEN = process.env.BOT_TOKEN;
-const OLD_BOT_TOKEN = process.env.OLD_BOT_TOKEN || process.env.BRIDGE_BOT_TOKEN || '8899747292:AAGusFkBrquTmi2gA2DDEm_4f9Woh3Q5XQQ';
 const LANDY_BOT_USERNAME = (process.env.LANDY_BOT_USERNAME || 'landytv_bot').replace('@', '').trim();
 
 // Normalize WEB_APP_URL (ensure https:// if user passed domain only)
@@ -32,9 +31,7 @@ if (rawAppUrl && !rawAppUrl.startsWith('http://') && !rawAppUrl.startsWith('http
 }
 const WEB_APP_URL = rawAppUrl;
 
-console.log('🤖 Telegram Multi-Bot Service Initializing...');
-console.log(`📌 Force-Sub Channels Configured (${HARDCODED_CHANNELS.length}):`);
-HARDCODED_CHANNELS.forEach(ch => console.log(`   - ${ch.name}: ${ch.url}`));
+console.log('🤖 Telegram Bot Service Initializing with dynamic Firebase channels...');
 
 // Clean user-requested Welcome Message
 const DEFAULT_WELCOME_MSG = `Welcome to Landy TV! 💦\n\nEnjoy streaming your favorite premium videos directly inside Telegram.\n\nClick the button below to start watching!`;
@@ -200,9 +197,14 @@ if (BOT_TOKEN && BOT_TOKEN !== 'YOUR_BOT_TOKEN_HERE') {
       }
     });
 
+    let lastPollingErrTime = 0;
     mainBot.on('polling_error', (error) => {
-      if (error.code === 'EFATAL' || error.message?.includes('404') || error.message?.includes('401')) {
-        console.error('⚠️ Main Bot Token unauthorized or invalid.');
+      const now = Date.now();
+      if (now - lastPollingErrTime > 60000) {
+        lastPollingErrTime = now;
+        if (error.code === 'EFATAL' || error.message?.includes('404') || error.message?.includes('401')) {
+          console.warn('⚠️ Main Bot Token unauthorized or not active in Telegram BotFather.');
+        }
       }
     });
 
@@ -212,90 +214,8 @@ if (BOT_TOKEN && BOT_TOKEN !== 'YOUR_BOT_TOKEN_HERE') {
   }
 }
 
-// ==============================================================
-// 2. OLD / BRIDGE BOT (REDIRECTS USERS TO 4 CHANNELS & LANDY TV)
-// ==============================================================
-if (OLD_BOT_TOKEN && OLD_BOT_TOKEN !== BOT_TOKEN) {
-  try {
-    const bridgeBot = new TelegramBot(OLD_BOT_TOKEN, { polling: true });
-
-    // Catch any message or command
-    bridgeBot.on('message', async (msg) => {
-      const chatId = msg.chat.id;
-      const user = msg.from;
-
-      if (!user) return;
-
-      // Always save user chat ID to Firebase Realtime DB
-      await saveOrUpdateUser(user);
-
-      const { isSubscribed, unjoined } = await verifyAllChannels(bridgeBot, user.id);
-
-      if (!isSubscribed) {
-        const { text, keyboard } = buildDynamicLockMessage(unjoined, 'verify_bridge', 'start');
-        bridgeBot.sendMessage(chatId, text, {
-          parse_mode: 'Markdown',
-          disable_web_page_preview: true,
-          reply_markup: { inline_keyboard: keyboard }
-        }).catch(err => console.error('Bridge Bot send error:', err.message));
-      } else {
-        const targetBotUrl = `https://t.me/${LANDY_BOT_USERNAME}`;
-        bridgeBot.sendMessage(chatId, `🎉 **Access Verified!**\n\nClick below to start Landy TV:`, {
-          parse_mode: 'Markdown',
-          reply_markup: {
-            inline_keyboard: [[{ text: "🎬 Open Landy TV Bot", url: targetBotUrl }]]
-          }
-        }).catch(() => {});
-      }
-    });
-
-    // Callback query for bridge bot
-    bridgeBot.on('callback_query', async (query) => {
-      const chatId = query.message.chat.id;
-      const user = query.from;
-      const data = query.data;
-
-      if (data && data.startsWith('verify_bridge_')) {
-        const { isSubscribed, unjoined } = await verifyAllChannels(bridgeBot, user.id);
-
-        if (!isSubscribed) {
-          await bridgeBot.answerCallbackQuery(query.id, {
-            text: `⚠️ You still need to join ${unjoined.length} channel(s) below!`,
-            show_alert: true
-          });
-
-          const { text, keyboard } = buildDynamicLockMessage(unjoined, 'verify_bridge', 'start');
-          return bridgeBot.editMessageText(text, {
-            chat_id: chatId,
-            message_id: query.message.message_id,
-            parse_mode: 'Markdown',
-            disable_web_page_preview: true,
-            reply_markup: { inline_keyboard: keyboard }
-          }).catch(() => {});
-        }
-
-        await bridgeBot.answerCallbackQuery(query.id, {
-          text: '🎉 Verified! Opening Landy TV...'
-        });
-
-        const targetBotUrl = `https://t.me/${LANDY_BOT_USERNAME}`;
-        bridgeBot.deleteMessage(chatId, query.message.message_id).catch(() => {});
-        bridgeBot.sendMessage(chatId, `🎉 **All Channels Verified!**\n\nClick below to open Landy TV:`, {
-          parse_mode: 'Markdown',
-          reply_markup: {
-            inline_keyboard: [[{ text: "🎬 Open Landy TV Bot", url: targetBotUrl }]]
-          }
-        }).catch(err => console.error('Bridge Bot redirect error:', err.message));
-      }
-    });
-
-    console.log('✅ Bridge Bot active with smart channel verification!');
-  } catch (err) {
-    console.error('Failed to start Bridge Bot:', err.message);
-  }
-}
-
 module.exports = {
   getMainBot: () => mainBotInstance,
   verifyAllChannels
 };
+

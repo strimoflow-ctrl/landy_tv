@@ -378,10 +378,20 @@ app.get('/api/health', (req, res) => {
 });
 
 // Force-Sub Verification Client
-const { verifyAllChannels } = require('./bot/verify');
+const { verifyAllChannels, getActiveChannels } = require('./bot/verify');
+const { 
+    getBotSettings, 
+    updateBotSettings, 
+    saveOrUpdateUser, 
+    isUserBlocked,
+    getUserData,
+    updateUserWatchTime,
+    updateUserSavedVideos,
+    updateAdPackProgress
+} = require('./firebase');
 const TelegramBotPackage = require('node-telegram-bot-api');
 const TelegramBot = TelegramBotPackage.default || TelegramBotPackage.TelegramBot || TelegramBotPackage;
-const verifierToken = process.env.BOT_TOKEN || process.env.HERRY_BOT_TOKEN;
+const verifierToken = process.env.BOT_TOKEN;
 let verifierBot = null;
 if (verifierToken && verifierToken !== 'YOUR_BOT_TOKEN_HERE') {
     try {
@@ -391,31 +401,245 @@ if (verifierToken && verifierToken !== 'YOUR_BOT_TOKEN_HERE') {
     }
 }
 
-// Check if user is subscribed to all 4 channels
+// 1. Get Live Channels & Force-Sub Lock Status from Firebase
+app.get('/api/admin/channels', async (req, res) => {
+    try {
+        const settings = await getBotSettings();
+        res.json({
+            success: true,
+            channels: settings.channels || [],
+            channelLockEnabled: settings.channelLockEnabled !== false,
+            welcomeText: settings.welcomeText || '',
+            lockMessage: settings.lockMessage || ''
+        });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// 2. Update Channels in Firebase from Admin Panel
+app.post('/api/admin/channels', async (req, res) => {
+    const { channels } = req.body;
+    if (!Array.isArray(channels)) {
+        return res.status(400).json({ success: false, error: 'Channels must be an array' });
+    }
+    try {
+        await updateBotSettings({ channels });
+        res.json({ success: true, message: 'Channels updated successfully in Firebase', channels });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// 3. Toggle Force-Sub Lock ON/OFF in Firebase
+app.post('/api/admin/toggle-lock', async (req, res) => {
+    const { enabled } = req.body;
+    try {
+        await updateBotSettings({ channelLockEnabled: Boolean(enabled) });
+        res.json({ success: true, channelLockEnabled: Boolean(enabled) });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// 3.1 Get All Users from Firebase for Admin Dashboard with 24h/1h/Blocked stats
+app.get('/api/admin/users', async (req, res) => {
+    try {
+        const DB_URL = "https://anime-net-a89c9-default-rtdb.asia-southeast1.firebasedatabase.app";
+        const fbRes = await axios.get(`${DB_URL}/users.json`, { timeout: 8000 });
+        const data = fbRes.data || {};
+        const users = Object.keys(data).map(key => ({
+            id: key,
+            ...data[key]
+        }));
+        
+        // Sort by last active descending (most active first)
+        users.sort((a, b) => (b.lastActive || 0) - (a.lastActive || 0));
+
+        const now = Date.now();
+        const oneHour = 60 * 60 * 1000;
+        const oneDay = 24 * 60 * 60 * 1000;
+        const sevenDays = 7 * 24 * 60 * 60 * 1000;
+
+        const active1h = users.filter(u => u.lastActive && (now - u.lastActive) < oneHour).length;
+        const active24h = users.filter(u => u.lastActive && (now - u.lastActive) < oneDay).length;
+        const active7d = users.filter(u => u.lastActive && (now - u.lastActive) < sevenDays).length;
+        const blockedUsers = users.filter(u => Boolean(u.isBlocked)).length;
+
+        res.json({
+            success: true,
+            totalUsers: users.length,
+            active1h,
+            active24h,
+            activeToday: active24h,
+            active7d,
+            blockedUsers,
+            users
+        });
+    } catch (err) {
+        console.error('[Admin Users API Error]:', err.message);
+        res.status(500).json({ success: false, error: err.message, users: [] });
+    }
+});
+
+// 3.2 Block / Unblock User from Admin Dashboard
+app.post('/api/admin/toggle-block', async (req, res) => {
+    const { userId, isBlocked } = req.body;
+    if (!userId) {
+        return res.status(400).json({ success: false, error: 'User ID is required' });
+    }
+    try {
+        const DB_URL = "https://anime-net-a89c9-default-rtdb.asia-southeast1.firebasedatabase.app";
+        await axios.patch(`${DB_URL}/users/${userId}.json`, { isBlocked: Boolean(isBlocked) }, { timeout: 6000 });
+        console.log(`[Admin] User ${userId} blocked status set to: ${Boolean(isBlocked)}`);
+        res.json({ success: true, userId, isBlocked: Boolean(isBlocked) });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// 3.3 Record User Mini App Activity (Last active timestamp & profile)
+app.post('/api/user/activity', async (req, res) => {
+    const user = req.body;
+    if (!user || !user.id) {
+        return res.status(400).json({ success: false, error: 'User object with id is required' });
+    }
+    try {
+        const saved = await saveOrUpdateUser(user);
+        const blocked = await isUserBlocked(user.id);
+        res.json({ success: true, isBlocked: Boolean(blocked), user: saved });
+    } catch (err) {
+        console.warn(`[User Activity Sync Error] ${err.message}`);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// 3.4 Get Full User Data (Watch Time, Saved Videos, Ad Packs Progress)
+app.get('/api/user/data', async (req, res) => {
+    const userId = req.query.userId;
+    if (!userId) return res.status(400).json({ success: false, error: 'userId is required' });
+    try {
+        const data = await getUserData(userId);
+        res.json({
+            success: true,
+            data: data || {
+                watchTimeSeconds: 180,
+                savedVideos: [],
+                adPacksProgress: {}
+            }
+        });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// 3.5 Update Watch Time Balance (Deduct when watching or Add on ad reward)
+app.post('/api/user/watch-time', async (req, res) => {
+    const { userId, deltaSeconds } = req.body;
+    if (!userId || deltaSeconds === undefined) {
+        return res.status(400).json({ success: false, error: 'userId and deltaSeconds are required' });
+    }
+    try {
+        const newTime = await updateUserWatchTime(userId, deltaSeconds);
+        res.json({ success: true, watchTimeSeconds: newTime });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// 3.6 Save / Update User Bookmarked Videos in Firebase
+app.post('/api/user/saved-videos', async (req, res) => {
+    const { userId, savedVideos } = req.body;
+    if (!userId || !Array.isArray(savedVideos)) {
+        return res.status(400).json({ success: false, error: 'userId and savedVideos array are required' });
+    }
+    try {
+        const updated = await updateUserSavedVideos(userId, savedVideos);
+        res.json({ success: true, savedVideos: updated });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// 3.7 Claim Ad Pack Progress & Add Bonus Time
+app.post('/api/user/claim-ad-reward', async (req, res) => {
+    const { userId, packId, increment, targetCount, rewardSeconds } = req.body;
+    if (!userId || !packId) {
+        return res.status(400).json({ success: false, error: 'userId and packId are required' });
+    }
+    try {
+        const result = await updateAdPackProgress(
+            userId, 
+            packId, 
+            Number(increment) || 1, 
+            Number(targetCount) || 5, 
+            Number(rewardSeconds) || 300
+        );
+        res.json({ success: true, ...result });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// 4. Check if user is subscribed to all dynamic channels from Firebase & check block status
 app.get('/api/check-subscription', async (req, res) => {
     const userId = req.query.userId || req.headers['x-telegram-user-id'];
     
-    // In browser / local testing without Telegram user ID
-    if (!userId) {
-        return res.json({ success: true, isSubscribed: true, unjoined: [], joinedCount: 4, totalCount: 4 });
+    // If valid user ID, check if they are blocked by Admin
+    if (userId && String(userId) !== '100000001') {
+        const blocked = await isUserBlocked(userId);
+        if (blocked) {
+            return res.json({ 
+                success: true, 
+                isBlocked: true, 
+                isSubscribed: false, 
+                unjoined: [], 
+                message: 'Your account has been suspended by the administrator.' 
+            });
+        }
+    }
+
+    const { channels, enabled } = await getActiveChannels();
+    
+    // If force-sub is disabled or user is in browser / dev / mock mode
+    if (!enabled || !userId || String(userId) === '100000001') {
+        return res.json({ 
+            success: true, 
+            isBlocked: false,
+            isSubscribed: true, 
+            unjoined: [], 
+            joinedCount: channels.length, 
+            totalCount: channels.length,
+            channels 
+        });
     }
 
     if (!verifierBot) {
-        return res.json({ success: true, isSubscribed: true, unjoined: [], joinedCount: 4, totalCount: 4 });
+        return res.json({ 
+            success: true, 
+            isBlocked: false,
+            isSubscribed: true, 
+            unjoined: [], 
+            joinedCount: channels.length, 
+            totalCount: channels.length,
+            channels 
+        });
     }
 
     try {
         const result = await verifyAllChannels(verifierBot, userId);
         return res.json({
             success: true,
+            isBlocked: false,
             isSubscribed: result.isSubscribed,
             unjoined: result.unjoined,
             joinedCount: result.joinedCount,
-            totalCount: result.totalCount
+            totalCount: result.totalCount,
+            channels: result.channels || channels
         });
     } catch (err) {
         console.error('[API Check Subscription Error]:', err.message);
-        return res.json({ success: true, isSubscribed: false, unjoined: [], error: err.message });
+        return res.json({ success: true, isBlocked: false, isSubscribed: false, unjoined: channels, channels, error: err.message });
     }
 });
 

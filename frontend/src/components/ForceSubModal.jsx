@@ -1,11 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 export default function ForceSubModal({ unjoined = [], onVerifySuccess }) {
   const [verifying, setVerifying] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [channels, setChannels] = useState(unjoined);
 
-  const total = 4;
+  // Lock background scrolling while modal is active
+  useEffect(() => {
+    const origOverflow = document.body.style.overflow;
+    const origTouch = document.body.style.touchAction;
+    document.body.style.overflow = 'hidden';
+    document.body.style.touchAction = 'none';
+
+    return () => {
+      document.body.style.overflow = origOverflow;
+      document.body.style.touchAction = origTouch;
+    };
+  }, []);
+
+  const total = channels.length || 4;
   const remaining = channels.length;
 
   const handleOpenChannel = (url) => {
@@ -38,7 +51,7 @@ export default function ForceSubModal({ unjoined = [], onVerifySuccess }) {
         setErrorMsg(`⚠️ You still need to join ${data.unjoined?.length || 'the'} channel(s) below!`);
       }
     } catch (err) {
-      setErrorMsg('Verification failed. Please check internet connection.');
+      setErrorMsg('Verification failed. Please check your internet connection.');
     } finally {
       setVerifying(false);
     }

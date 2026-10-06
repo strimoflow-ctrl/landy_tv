@@ -723,6 +723,74 @@ body {
   box-shadow: 0 0 8px var(--accent);
 }
 
+/* Center Big Glowing Action Button (Get Time) */
+.nav-item-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
+  top: -12px;
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  z-index: 90;
+}
+
+.nav-item-center:hover {
+  transform: translateY(-3px) scale(1.05);
+}
+
+.nav-item-center:active {
+  transform: scale(0.92);
+}
+
+.center-fab-glow {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #ef4444 0%, #ff2a5f 50%, #f43f5e 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  box-shadow: 0 0 22px rgba(239, 68, 68, 0.7), 0 4px 15px rgba(0, 0, 0, 0.5);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  position: relative;
+  animation: pulseGlow 2.5s infinite ease-in-out;
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 16px rgba(239, 68, 68, 0.6), 0 4px 12px rgba(0,0,0,0.5);
+  }
+  50% {
+    box-shadow: 0 0 28px rgba(239, 68, 68, 0.95), 0 0 12px rgba(244, 63, 94, 0.8);
+  }
+}
+
+.fab-icon {
+  color: #ffffff;
+  filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.8));
+}
+
+.fab-label {
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: #ff2a5f;
+  margin-top: 2px;
+  letter-spacing: 0.3px;
+  text-shadow: 0 0 8px rgba(255, 42, 95, 0.5);
+}
+
+.nav-item-center.active .center-fab-glow {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  box-shadow: 0 0 24px rgba(16, 185, 129, 0.8);
+}
+
+.nav-item-center.active .fab-label {
+  color: #10b981;
+}
+
 /* Profile Card */
 .profile-card {
   padding: 24px 20px;
@@ -788,3 +856,171 @@ body {
   from { opacity: 0; transform: translateY(-8px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+/* ============================================================
+   DESKTOP & PC ULTRA-PREMIUM STREAMING EXPERIENCE
+   ============================================================ */
+
+/* Tablet (>= 640px) */
+@media (min-width: 640px) {
+  .app-container {
+    max-width: 760px;
+  }
+  .video-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    padding: 16px 20px;
+  }
+  .bottom-nav {
+    max-width: 500px;
+    border-radius: var(--radius-full);
+    bottom: 14px;
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+  }
+}
+
+/* PC / Laptop (>= 900px) - Cinema Split View */
+@media (min-width: 900px) {
+  .app-container {
+    max-width: 1200px;
+    padding: 0 24px 100px;
+  }
+  
+  .app-header {
+    padding: 16px 24px;
+    border-radius: var(--radius-md);
+    margin-top: 12px;
+  }
+
+  .header-logo {
+    width: 44px;
+    height: 44px;
+  }
+
+  .header-title {
+    font-size: 1.5rem;
+  }
+
+  .video-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    padding: 20px 0;
+  }
+
+  .video-card {
+    border-radius: var(--radius-lg);
+  }
+
+  .video-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+  }
+
+  /* Desktop Video Player Cinema Split Layout */
+  .player-overlay {
+    max-width: 100vw;
+    background: rgba(7, 8, 12, 0.97);
+    backdrop-filter: blur(28px);
+    -webkit-backdrop-filter: blur(28px);
+  }
+
+  .player-top-nav {
+    height: 60px;
+    padding: 0 28px;
+    max-width: 1400px;
+    width: 100%;
+    margin: 0 auto;
+    background: transparent;
+    border-bottom: 1px solid var(--glass-border);
+  }
+
+  .player-content-body {
+    display: flex;
+    flex-direction: row;
+    flex: 1;
+    overflow: hidden;
+    max-width: 1440px;
+    width: 100%;
+    margin: 0 auto;
+    gap: 28px;
+    padding: 20px 28px 28px;
+  }
+
+  .player-fixed-container {
+    flex: 2;
+    background: transparent;
+    border-bottom: none;
+    box-shadow: none;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  .video-canvas-wrapper {
+    max-height: 58vh;
+    border-radius: var(--radius-lg);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.85), 0 0 30px rgba(255, 42, 95, 0.15);
+    border: 1px solid var(--glass-border);
+  }
+
+  .video-player-el {
+    max-height: 58vh;
+    border-radius: var(--radius-lg);
+  }
+
+  .player-pinned-controls {
+    padding: 16px 4px;
+    gap: 12px;
+  }
+
+  .player-title {
+    font-size: 1.25rem;
+    font-weight: 800;
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .action-buttons-row {
+    max-width: 420px;
+    gap: 12px;
+  }
+
+  .action-btn {
+    padding: 10px 16px;
+    font-size: 0.9rem;
+    border-radius: var(--radius-md);
+  }
+
+  /* Right Sidebar Recommendations */
+  .player-suggested-scrollable {
+    flex: 1;
+    max-width: 440px;
+    background: rgba(18, 21, 31, 0.7);
+    backdrop-filter: blur(16px);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--glass-border);
+    padding: 18px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  }
+
+  .suggested-card-item {
+    padding: 10px;
+    gap: 14px;
+  }
+}
+
+/* Ultra-Wide Desktop (>= 1440px) */
+@media (min-width: 1440px) {
+  .app-container {
+    max-width: 1480px;
+  }
+  .video-grid {
+    grid-template-columns: repeat(5, 1fr);
+    gap: 22px;
+  }
+}
+

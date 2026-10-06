@@ -1,7 +1,11 @@
-// Storage helper for Saved Bookmarks and Watch History
+// Storage helper for Saved Bookmarks and Watch History with Firebase sync
 
 const SAVED_KEY = 'landy_saved_videos';
 const HISTORY_KEY = 'landy_watch_history';
+
+function getUserId() {
+  return window.Telegram?.WebApp?.initDataUnsafe?.user?.id || 'guest_user';
+}
 
 export function getSavedVideos() {
   try {
@@ -16,6 +20,10 @@ export function isVideoSaved(videoUrl) {
   return list.some(v => v.url === videoUrl);
 }
 
+export function setSavedVideosLocal(list) {
+  localStorage.setItem(SAVED_KEY, JSON.stringify(list));
+}
+
 export function toggleSaveVideo(video) {
   let list = getSavedVideos();
   const exists = list.some(v => v.url === video.url);
@@ -25,7 +33,42 @@ export function toggleSaveVideo(video) {
     list.unshift(video);
   }
   localStorage.setItem(SAVED_KEY, JSON.stringify(list));
+
+  // Sync to Firebase in background so bookmarks never get lost
+  const userId = getUserId();
+  if (userId && userId !== 'guest_user') {
+    fetch('/api/user/saved-videos', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, savedVideos: list })
+    }).catch(err => console.warn('Firebase saved videos sync error:', err));
+  }
+
   return !exists;
+}
+
+export async function syncSavedVideosFromFirebase(userId) {
+  if (!userId || userId === 'guest_user') return getSavedVideos();
+  try {
+    const res = await fetch(`/api/user/data?userId=${userId}`);
+    const json = await res.json();
+    if (json.success && json.data && Array.isArray(json.data.savedVideos)) {
+      const fbList = json.data.savedVideos;
+      const localList = getSavedVideos();
+      
+      // Merge unique
+      const map = new Map();
+      fbList.forEach(v => map.set(v.url, v));
+      localList.forEach(v => map.set(v.url, v));
+      const merged = Array.from(map.values());
+      
+      setSavedVideosLocal(merged);
+      return merged;
+    }
+  } catch (e) {
+    console.warn('Could not sync saved videos from Firebase:', e);
+  }
+  return getSavedVideos();
 }
 
 export function getWatchHistory() {

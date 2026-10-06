@@ -1,30 +1,52 @@
 import React from 'react';
-import { Home, Clock, Bookmark, User } from 'lucide-react';
+import { Home, Clock, Zap, Bookmark, User } from 'lucide-react';
 
 export default function BottomNav({ activeNav, onSelectNav }) {
-  const items = [
-    { id: 'home', label: 'Home', icon: Home },
-    { id: 'recent', label: 'Recent', icon: Clock },
-    { id: 'saved', label: 'Saved', icon: Bookmark },
-    { id: 'profile', label: 'Profile', icon: User },
-  ];
-
   return (
     <nav className="bottom-nav">
-      {items.map((item) => {
-        const Icon = item.icon;
-        const isActive = activeNav === item.id;
-        return (
-          <div
-            key={item.id}
-            className={`nav-item ${isActive ? 'active' : ''}`}
-            onClick={() => onSelectNav(item.id)}
-          >
-            <Icon size={20} />
-            <span>{item.label}</span>
-          </div>
-        );
-      })}
+      <div
+        className={`nav-item ${activeNav === 'home' ? 'active' : ''}`}
+        onClick={() => onSelectNav('home')}
+      >
+        <Home size={20} />
+        <span>Home</span>
+      </div>
+
+      <div
+        className={`nav-item ${activeNav === 'recent' ? 'active' : ''}`}
+        onClick={() => onSelectNav('recent')}
+      >
+        <Clock size={20} />
+        <span>Recent</span>
+      </div>
+
+      {/* Center Big Glowing FAB Button */}
+      <div
+        className={`nav-item-center ${activeNav === 'earn_time' ? 'active' : ''}`}
+        onClick={() => onSelectNav('earn_time')}
+      >
+        <div className="center-fab-glow">
+          <Zap size={22} className="fab-icon" />
+        </div>
+        <span className="fab-label">Get Time</span>
+      </div>
+
+      <div
+        className={`nav-item ${activeNav === 'saved' ? 'active' : ''}`}
+        onClick={() => onSelectNav('saved')}
+      >
+        <Bookmark size={20} />
+        <span>Saved</span>
+      </div>
+
+      <div
+        className={`nav-item ${activeNav === 'profile' ? 'active' : ''}`}
+        onClick={() => onSelectNav('profile')}
+      >
+        <User size={20} />
+        <span>Profile</span>
+      </div>
     </nav>
   );
 }
+
