@@ -1,16 +1,24 @@
 const axios = require('axios');
+const path = require('path');
+const dotenv = require('dotenv');
+
+// Load environment variables from process or .env files
+dotenv.config();
+dotenv.config({ path: path.join(__dirname, '.env') });
+dotenv.config({ path: path.join(__dirname, '../.env') });
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDRWDNd9ybc6RVg0fMGrplt7xZA_HEmrB8",
-  authDomain: "anime-net-a89c9.firebaseapp.com",
-  databaseURL: "https://anime-net-a89c9-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "anime-net-a89c9",
-  storageBucket: "anime-net-a89c9.firebasestorage.app",
-  messagingSenderId: "124019902909",
-  appId: "1:124019902909:web:0268a3be96e40c8dcb2ad4"
+  apiKey: process.env.FIREBASE_API_KEY || "AIzaSyBC_EvTsMlad61GfcNGZaQb927k5FAQ0u0",
+  authDomain: process.env.FIREBASE_AUTH_DOMAIN || "landytv-27da4.firebaseapp.com",
+  databaseURL: (process.env.FIREBASE_DATABASE_URL || "https://landytv-27da4-default-rtdb.firebaseio.com").replace(/\/$/, ''),
+  projectId: process.env.FIREBASE_PROJECT_ID || "landytv-27da4",
+  storageBucket: process.env.FIREBASE_STORAGE_BUCKET || "landytv-27da4.firebasestorage.app",
+  messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID || "764869287968",
+  appId: process.env.FIREBASE_APP_ID || "1:764869287968:web:3722e4f83ea234052c9c45"
 };
 
-const DB_URL = firebaseConfig.databaseURL.replace(/\/$/, '');
+const DB_URL = (process.env.FIREBASE_DATABASE_URL || firebaseConfig.databaseURL).replace(/\/$/, '');
+console.log(`[Firebase] Configured Database URL: ${DB_URL}`);
 
 // Default fallback settings if none in DB
 const DEFAULT_BOT_SETTINGS = {

@@ -24,6 +24,7 @@ const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
 const cheerio = require('cheerio');
+const { DB_URL } = require('./firebase');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -445,7 +446,6 @@ app.post('/api/admin/toggle-lock', async (req, res) => {
 // 3.1 Get All Users from Firebase for Admin Dashboard with 24h/1h/Blocked stats
 app.get('/api/admin/users', async (req, res) => {
     try {
-        const DB_URL = "https://anime-net-a89c9-default-rtdb.asia-southeast1.firebasedatabase.app";
         const fbRes = await axios.get(`${DB_URL}/users.json`, { timeout: 8000 });
         const data = fbRes.data || {};
         const users = Object.keys(data).map(key => ({
@@ -489,7 +489,6 @@ app.post('/api/admin/toggle-block', async (req, res) => {
         return res.status(400).json({ success: false, error: 'User ID is required' });
     }
     try {
-        const DB_URL = "https://anime-net-a89c9-default-rtdb.asia-southeast1.firebasedatabase.app";
         await axios.patch(`${DB_URL}/users/${userId}.json`, { isBlocked: Boolean(isBlocked) }, { timeout: 6000 });
         console.log(`[Admin] User ${userId} blocked status set to: ${Boolean(isBlocked)}`);
         res.json({ success: true, userId, isBlocked: Boolean(isBlocked) });
@@ -511,7 +510,6 @@ app.post('/api/admin/broadcast', async (req, res) => {
     }
 
     try {
-        const DB_URL = "https://anime-net-a89c9-default-rtdb.asia-southeast1.firebasedatabase.app";
         const fbRes = await axios.get(`${DB_URL}/users.json`, { timeout: 10000 });
         const data = fbRes.data || {};
         let userList = Object.keys(data).map(key => ({

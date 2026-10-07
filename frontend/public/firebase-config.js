@@ -1,21 +1,16 @@
 // Landy TV Firebase Configuration
 const firebaseConfig = {
-    apiKey: "AIzaSyDRWDNd9ybc6RVg0fMGrplt7xZA_HEmrB8",
-    authDomain: "anime-net-a89c9.firebaseapp.com",
-    databaseURL: "https://anime-net-a89c9-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "anime-net-a89c9",
-    storageBucket: "anime-net-a89c9.firebasestorage.app",
-    messagingSenderId: "124019902909",
-    appId: "1:124019902909:web:0268a3be96e40c8dcb2ad4"
+    apiKey: "AIzaSyBC_EvTsMlad61GfcNGZaQb927k5FAQ0u0",
+    authDomain: "landytv-27da4.firebaseapp.com",
+    databaseURL: "https://landytv-27da4-default-rtdb.firebaseio.com",
+    projectId: "landytv-27da4",
+    storageBucket: "landytv-27da4.firebasestorage.app",
+    messagingSenderId: "764869287968",
+    appId: "1:764869287968:web:3722e4f83ea234052c9c45"
 };
 
 // Initialize Firebase
 if (typeof firebase !== 'undefined') {
-    try {
-        firebase.initializeApp(firebaseConfig);
-        window.db = firebase.database();
-    } catch (e) {
-        console.warn('Firebase init warning:', e);
-    }
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
 }
-
