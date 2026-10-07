@@ -1317,9 +1317,9 @@
     // ==========================================
     // STANDALONE DIRECT FIREBASE CONSTANTS
     // ==========================================
-    const DEFAULT_DB_URL = "https://landytv-27da4-default-rtdb.firebaseio.com";
+    const DEFAULT_DB_URL = "https://landytv-27da4-default-rtdb.asia-southeast1.firebasedatabase.app";
     let savedDbUrl = localStorage.getItem('landy_admin_db_url');
-    if (!savedDbUrl || savedDbUrl.includes('anime-net-a89c9')) {
+    if (!savedDbUrl || savedDbUrl.includes('anime-net') || savedDbUrl.includes('firebaseio.com')) {
       savedDbUrl = DEFAULT_DB_URL;
       localStorage.setItem('landy_admin_db_url', DEFAULT_DB_URL);
     }

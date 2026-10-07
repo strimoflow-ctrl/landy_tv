@@ -10,7 +10,7 @@ dotenv.config({ path: path.join(__dirname, '../.env') });
 const firebaseConfig = {
   apiKey: process.env.FIREBASE_API_KEY || "AIzaSyBC_EvTsMlad61GfcNGZaQb927k5FAQ0u0",
   authDomain: process.env.FIREBASE_AUTH_DOMAIN || "landytv-27da4.firebaseapp.com",
-  databaseURL: (process.env.FIREBASE_DATABASE_URL || "https://landytv-27da4-default-rtdb.firebaseio.com").replace(/\/$/, ''),
+  databaseURL: (process.env.FIREBASE_DATABASE_URL || "https://landytv-27da4-default-rtdb.asia-southeast1.firebasedatabase.app").replace(/\/$/, ''),
   projectId: process.env.FIREBASE_PROJECT_ID || "landytv-27da4",
   storageBucket: process.env.FIREBASE_STORAGE_BUCKET || "landytv-27da4.firebasestorage.app",
   messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID || "764869287968",

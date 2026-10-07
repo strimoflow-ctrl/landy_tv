@@ -2,7 +2,7 @@
 const firebaseConfig = {
     apiKey: "AIzaSyBC_EvTsMlad61GfcNGZaQb927k5FAQ0u0",
     authDomain: "landytv-27da4.firebaseapp.com",
-    databaseURL: "https://landytv-27da4-default-rtdb.firebaseio.com",
+    databaseURL: "https://landytv-27da4-default-rtdb.asia-southeast1.firebasedatabase.app",
     projectId: "landytv-27da4",
     storageBucket: "landytv-27da4.firebasestorage.app",
     messagingSenderId: "764869287968",
