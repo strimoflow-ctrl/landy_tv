@@ -9,7 +9,7 @@ const TelegramBotPackage = require('node-telegram-bot-api');
 const TelegramBot = TelegramBotPackage.default || TelegramBotPackage.TelegramBot || TelegramBotPackage;
 const path = require('path');
 const dotenv = require('dotenv');
-const { saveOrUpdateUser, isUserBlocked } = require('../firebase');
+const { saveOrUpdateUser, isUserBlocked, markUserBotBlocked } = require('../firebase');
 const { 
   getActiveChannels, 
   verifyAllChannels, 
@@ -126,6 +126,24 @@ if (BOT_TOKEN && BOT_TOKEN !== 'YOUR_BOT_TOKEN_HERE') {
       if (msg.text && msg.text.startsWith('/start')) return; // Already handled
       if (msg.chat.type !== 'private') return; // Only in private chat
       await handleUserStart(msg, '');
+    });
+
+    // Listen for user block/unblock events (my_chat_member)
+    mainBot.on('my_chat_member', async (update) => {
+      try {
+        const userId = update.from?.id;
+        const newStatus = update.new_chat_member?.status;
+        if (!userId) return;
+        if (newStatus === 'kicked') {
+          console.log(`[Bot Event] User ${userId} blocked or deleted the bot.`);
+          await markUserBotBlocked(userId, true);
+        } else if (newStatus === 'member') {
+          console.log(`[Bot Event] User ${userId} unblocked/resumed the bot.`);
+          await markUserBotBlocked(userId, false);
+        }
+      } catch (e) {
+        console.warn('[my_chat_member error]:', e.message);
+      }
     });
 
     let lastPollingErrTime = 0;

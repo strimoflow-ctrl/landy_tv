@@ -822,7 +822,58 @@
       margin-bottom: 8px;
       max-height: 180px;
       object-fit: cover;
-      display: none;
+    }
+
+    /* Filter Sub-Tabs & Badges */
+    .filter-pill {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 6px 14px;
+      border-radius: var(--radius-full);
+      font-size: 0.78rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      user-select: none;
+    }
+    .filter-pill:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+    .filter-pill.active {
+      background: rgba(0, 242, 254, 0.12);
+      border-color: var(--accent-cyan);
+      color: #fff;
+      box-shadow: 0 0 14px rgba(0, 242, 254, 0.18);
+    }
+    .badge-live {
+      background: rgba(0, 242, 254, 0.16) !important;
+      color: var(--accent-cyan) !important;
+      border: 1px solid rgba(0, 242, 254, 0.35) !important;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .badge-rose {
+      background: rgba(255, 42, 95, 0.16) !important;
+      color: #ff2a5f !important;
+      border: 1px solid rgba(255, 42, 95, 0.35) !important;
+    }
+    .badge-gray {
+      background: rgba(255, 255, 255, 0.05) !important;
+      color: var(--text-dim) !important;
+      border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    }
+    .badge-success {
+      background: rgba(16, 185, 129, 0.16) !important;
+      color: var(--accent-green) !important;
+      border: 1px solid rgba(16, 185, 129, 0.35) !important;
+    }
+    .badge-danger {
+      background: rgba(239, 68, 68, 0.18) !important;
+      color: #ef4444 !important;
+      border: 1px solid rgba(239, 68, 68, 0.35) !important;
     }
   </style>
 </head>
@@ -857,16 +908,21 @@
 
     <!-- Metrics Cards -->
     <section class="metrics-grid">
-      <div class="metric-card" style="--card-color: var(--accent-cyan);">
+      <!-- 1. Live Viewers Right Now (Clickable to view active sessions) -->
+      <div class="metric-card" style="--card-color: #00f2fe; cursor: pointer;" onclick="openLiveViewersModal()" title="Click to view real-time live viewers list">
         <div class="metric-header">
-          <span class="metric-label">Total Users</span>
-          <span class="metric-icon">👥</span>
+          <span class="metric-label" style="display: flex; align-items: center; gap: 6px;">
+            <span class="status-dot" style="background: #00f2fe; box-shadow: 0 0 8px #00f2fe;"></span>
+            Live Viewers Now
+          </span>
+          <span class="metric-icon">🟢</span>
         </div>
-        <div class="metric-value" id="mTotalUsers">--</div>
-        <div class="metric-sub">Registered Telegram accounts</div>
+        <div class="metric-value" id="mLiveViewers" style="color: #00f2fe;">0</div>
+        <div class="metric-sub" style="color: #00f2fe;">Direct server in-memory • Click to view</div>
       </div>
 
-      <div class="metric-card" style="--card-color: var(--accent-green);">
+      <!-- 2. Active Users 24h -->
+      <div class="metric-card" style="--card-color: var(--accent-green); cursor: pointer;" onclick="filterUsersByTab('active24h')" title="Filter users active in past 24 hours">
         <div class="metric-header">
           <span class="metric-label">Active Users (24h)</span>
           <span class="metric-icon">⚡</span>
@@ -875,6 +931,27 @@
         <div class="metric-sub">Streaming in past 24 hours</div>
       </div>
 
+      <!-- 3. Total Users -->
+      <div class="metric-card" style="--card-color: var(--accent-cyan); cursor: pointer;" onclick="filterUsersByTab('all')" title="View all users">
+        <div class="metric-header">
+          <span class="metric-label">Total Users</span>
+          <span class="metric-icon">👥</span>
+        </div>
+        <div class="metric-value" id="mTotalUsers">--</div>
+        <div class="metric-sub">Registered Telegram accounts</div>
+      </div>
+
+      <!-- 4. Bot Blocked / Deleted Users -->
+      <div class="metric-card" style="--card-color: var(--accent-pink); cursor: pointer;" onclick="filterUsersByTab('botBlocked')" title="View users who blocked or deleted bot">
+        <div class="metric-header">
+          <span class="metric-label">Bot Blocked / Deleted</span>
+          <span class="metric-icon">🚫</span>
+        </div>
+        <div class="metric-value" id="mBotBlocked" style="color: #ff2a5f;">--</div>
+        <div class="metric-sub">Blocked or deleted bot chat</div>
+      </div>
+
+      <!-- 5. Total Watch Time -->
       <div class="metric-card" style="--card-color: var(--accent-amber);">
         <div class="metric-header">
           <span class="metric-label">Total Watch Time</span>
@@ -884,22 +961,14 @@
         <div class="metric-sub">Total watch time stored</div>
       </div>
 
-      <div class="metric-card" style="--card-color: var(--accent-pink);">
+      <!-- 6. Force-Sub Lock -->
+      <div class="metric-card" style="--card-color: var(--accent-purple);">
         <div class="metric-header">
           <span class="metric-label">Force-Sub Lock</span>
           <span class="metric-icon">🔒</span>
         </div>
         <div class="metric-value" id="mLockStatus" style="font-size: 1.5rem;">ACTIVE</div>
         <div class="metric-sub" id="mChannelsCount">4 channels enforced</div>
-      </div>
-
-      <div class="metric-card" style="--card-color: var(--accent-purple);">
-        <div class="metric-header">
-          <span class="metric-label">Auto-Posted Videos</span>
-          <span class="metric-icon">🎬</span>
-        </div>
-        <div class="metric-value" id="mPostedCount">--</div>
-        <div class="metric-sub">Auto channel broadcast records</div>
       </div>
     </section>
 
@@ -951,21 +1020,46 @@
     <!-- TAB 2: Users & Watch Time -->
     <section id="usersTab" class="tab-content">
       <div class="glass-panel">
-        <div class="panel-header">
+        <div class="panel-header" style="flex-wrap: wrap; gap: 16px;">
           <div>
             <h2 class="panel-title">👥 Registered Users Directory</h2>
-            <p class="panel-subtitle">Search, block/unblock, and grant custom free watch time balances</p>
+            <p class="panel-subtitle">Filter by 24h Active, Live Now, or Blocked/Deleted accounts with zero Firebase load</p>
           </div>
 
-          <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+          <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
             <div class="search-bar">
               <span>🔍</span>
               <input type="text" id="userSearchInput" placeholder="Search by ID, Name or @Username..." oninput="filterUsers()">
             </div>
+            <button class="btn btn-secondary btn-sm" onclick="scanBlockedUsers()" id="btnScanBlocked" title="Stealth scan to detect users who deleted or blocked bot">
+              🔍 Scan Blocked Users
+            </button>
             <button class="btn btn-secondary btn-sm" onclick="exportUsersCSV()">
               📥 Export CSV
             </button>
           </div>
+        </div>
+
+        <!-- Filter Sub-Tabs -->
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border);">
+          <button class="filter-pill active" id="tabFilterAll" onclick="setUserFilter('all')">
+            All Users (<span id="cntAll">--</span>)
+          </button>
+          <button class="filter-pill" id="tabFilterActive24h" onclick="setUserFilter('active24h')" style="color: var(--accent-green);">
+            ⚡ Active (24h) (<span id="cntActive24h">--</span>)
+          </button>
+          <button class="filter-pill" id="tabFilterLive" onclick="setUserFilter('live')" style="color: var(--accent-cyan);">
+            🟢 Live Now (<span id="cntLive">--</span>)
+          </button>
+          <button class="filter-pill" id="tabFilterBlocked" onclick="setUserFilter('botBlocked')" style="color: var(--accent-pink);">
+            🚫 Bot Blocked/Deleted (<span id="cntBlocked">--</span>)
+          </button>
+          <button class="filter-pill" id="tabFilterInactive" onclick="setUserFilter('inactive')" style="color: var(--text-dim);">
+            💤 Inactive (>24h) (<span id="cntInactive">--</span>)
+          </button>
+          <button class="filter-pill" id="tabFilterBanned" onclick="setUserFilter('banned')" style="color: #ef4444;">
+            🛑 Admin Suspended (<span id="cntBanned">--</span>)
+          </button>
         </div>
 
         <div class="table-responsive">
@@ -1061,6 +1155,10 @@
                   <option value="active7d">📅 Active Users in Past 7 Days</option>
                   <option value="custom">🎯 Specific User ID Only (Single Target)</option>
                 </select>
+                <label style="display: flex; align-items: center; gap: 8px; font-size: 0.78rem; color: #a0aec0; cursor: pointer; margin-top: 8px;">
+                  <input type="checkbox" id="broadcastExcludeBlocked" checked onchange="updateAudienceBadge()" style="accent-color: var(--accent-cyan); width: 16px; height: 16px;">
+                  <span>🚫 <b>Skip Bot Blocked / Deleted Users</b> (Prevents failed sends & keeps Telegram limits safe)</span>
+                </label>
               </div>
 
               <!-- Only shown if "Specific User ID Only" is selected -->
@@ -1310,6 +1408,31 @@
     </div>
   </div>
 
+  <!-- Live Viewers Modal -->
+  <div class="modal-backdrop" id="liveViewersModal">
+    <div class="modal-box" style="max-width: 650px;">
+      <button class="modal-close" onclick="closeLiveViewersModal()">&times;</button>
+      <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
+        <span style="font-size: 24px;">🟢</span>
+        <div>
+          <h3 style="font-size: 1.25rem; font-weight: 800; color: #fff;">Real-Time Live Viewers</h3>
+          <p style="font-size: 0.78rem; color: #00f2fe; margin-top: 2px;">Direct server in-memory tracking (0 Firebase load)</p>
+        </div>
+      </div>
+      <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 16px;">
+        Users active in the Mini App right now. Auto-refreshes every 4 seconds.
+      </p>
+
+      <div style="max-height: 420px; overflow-y: auto;" id="liveViewersListContainer">
+        <div class="empty-state">No live viewers active right now.</div>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; margin-top: 16px;">
+        <button class="btn btn-secondary btn-sm" onclick="closeLiveViewersModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast Notification Container -->
   <div class="toast-container" id="toastContainer"></div>
 
@@ -1361,7 +1484,10 @@
       isLockEnabled: true,
       channels: [],
       broadcasting: false,
-      broadcastAbort: false
+      broadcastAbort: false,
+      liveStats: { count: 0, viewers: [] },
+      liveViewersMap: new Map(),
+      activeUserFilter: 'all'
     };
 
     // ==========================================
@@ -1370,30 +1496,138 @@
     async function init() {
       initBroadcast();
       await loadAllData();
-      // Setup periodic refresh every 30 seconds
+      await fetchLiveStats();
+      
+      // Fast live viewer poll (4s) - direct to server in-memory, ZERO Firebase load
+      setInterval(fetchLiveStats, 4000);
+
+      // Periodic data refresh (30s)
       setInterval(() => loadAllData(false), 30000);
+    }
+
+    // ==========================================
+    // LIVE VIEWERS (Zero Firebase load)
+    // ==========================================
+    async function fetchLiveStats() {
+      try {
+        const res = await fetch('/api/admin/live-stats');
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.success) {
+            state.liveStats = data;
+            state.liveViewersMap = new Map();
+            (data.viewers || []).forEach(v => {
+              state.liveViewersMap.set(String(v.userId), v);
+            });
+
+            const liveEl = document.getElementById('mLiveViewers');
+            if (liveEl) liveEl.innerText = (data.count || 0).toLocaleString();
+
+            const cntLive = document.getElementById('cntLive');
+            if (cntLive) cntLive.innerText = (data.count || 0).toLocaleString();
+
+            // If live modal is open, re-render it
+            const modal = document.getElementById('liveViewersModal');
+            if (modal && modal.classList.contains('open')) {
+              renderLiveViewersList();
+            }
+          }
+        }
+      } catch (e) {
+        // Fallback gracefully if running on external static host
+      }
+    }
+
+    function openLiveViewersModal() {
+      renderLiveViewersList();
+      document.getElementById('liveViewersModal').classList.add('open');
+    }
+
+    function closeLiveViewersModal() {
+      document.getElementById('liveViewersModal').classList.remove('open');
+    }
+
+    function renderLiveViewersList() {
+      const container = document.getElementById('liveViewersListContainer');
+      const viewers = state.liveStats.viewers || [];
+
+      if (viewers.length === 0) {
+        container.innerHTML = '<div class="empty-state">No live viewers active in Mini App right now.</div>';
+        return;
+      }
+
+      container.innerHTML = viewers.map(v => {
+        const videoTitle = v.currentVideo ? (v.currentVideo.title || 'Watching Video') : 'Browsing Home / Store';
+        const mins = Math.floor((v.onlineDurationSeconds || 0) / 60);
+        const secs = (v.onlineDurationSeconds || 0) % 60;
+        const durationText = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+
+        return `
+          <div style="background: rgba(255, 255, 255, 0.04); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <div style="width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #00f2fe, #38bdf8); display: flex; align-items: center; justify-content: center; font-weight: 800; color: #06080e;">
+                ${escapeHtml((v.name || 'U')[0].toUpperCase())}
+              </div>
+              <div>
+                <div style="font-weight: 700; color: #fff; font-size: 0.9rem;">
+                  ${escapeHtml(v.name || 'Viewer')} 
+                  ${v.username ? `<span style="color: var(--accent-cyan); font-size: 0.78rem;">@${escapeHtml(v.username)}</span>` : ''}
+                </div>
+                <div style="font-size: 0.76rem; color: var(--text-dim); margin-top: 2px;">
+                  ID: <code style="color: #cbd5e1;">${v.userId}</code> • Page: <span style="color: #38bdf8;">${escapeHtml(v.page || 'app')}</span>
+                </div>
+                <div style="font-size: 0.78rem; color: #fcd34d; margin-top: 2px; font-weight: 600;">
+                  🎬 ${escapeHtml(videoTitle)}
+                </div>
+              </div>
+            </div>
+
+            <div style="text-align: right; flex-shrink: 0;">
+              <span class="badge badge-live">
+                <span class="status-dot" style="width: 6px; height: 6px; background: #00f2fe;"></span> LIVE
+              </span>
+              <div style="font-size: 0.72rem; color: var(--text-dim); margin-top: 4px;">Online: ${durationText}</div>
+            </div>
+          </div>
+        `;
+      }).join('');
     }
 
     async function loadAllData(showToastNotice = false) {
       try {
         updateStatus('Connecting...', false);
 
-        // 1. Fetch bot_settings from Firebase
+        // Try Server API first (uses server memory cache, saving Firebase bandwidth!)
+        let serverLoaded = false;
+        try {
+          const sRes = await fetch('/api/admin/users');
+          if (sRes.ok) {
+            const sData = await sRes.json();
+            if (sData && sData.success && Array.isArray(sData.users)) {
+              state.usersList = sData.users;
+              state.serverStats = sData;
+              serverLoaded = true;
+            }
+          }
+        } catch (e) {}
+
+        // Fallback to direct Firebase RTDB if server API isn't responding
+        if (!serverLoaded) {
+          const usersRes = await fetch(`${DB_URL}/users.json`);
+          state.users = await usersRes.json() || {};
+          state.usersList = Object.keys(state.users).map(key => ({
+            id: String(state.users[key]?.id || key),
+            ...state.users[key]
+          }));
+        }
+
+        // Fetch bot_settings from Firebase or Server
         const settingsRes = await fetch(`${DB_URL}/bot_settings.json`);
         state.botSettings = await settingsRes.json() || {};
         state.isLockEnabled = state.botSettings.channelLockEnabled !== false;
         state.channels = Array.isArray(state.botSettings.channels) ? state.botSettings.channels : [];
 
-        // 2. Fetch users from Firebase
-        const usersRes = await fetch(`${DB_URL}/users.json`);
-        state.users = await usersRes.json() || {};
-        state.usersList = Object.keys(state.users).map(key => ({
-          id: String(state.users[key]?.id || key),
-          ...state.users[key]
-        }));
-        updateAudienceBadge();
-
-        // 3. Fetch posted videos
+        // Fetch posted videos
         try {
           const postedRes = await fetch(`${DB_URL}/posted_videos.json`);
           state.postedVideos = await postedRes.json() || {};
@@ -1401,7 +1635,7 @@
           state.postedVideos = {};
         }
 
-        updateStatus('Connected to Firebase', true);
+        updateStatus(serverLoaded ? 'Connected via Node Server (Optimized)' : 'Connected to Firebase RTDB', true);
 
         // Render everything
         renderMetrics();
@@ -1411,12 +1645,12 @@
         renderSystemSettings();
 
         if (showToastNotice) {
-          showToast('Data refreshed live from Firebase RTDB!', 'success');
+          showToast(serverLoaded ? 'Data refreshed via server cache!' : 'Data refreshed live from Firebase RTDB!', 'success');
         }
       } catch (err) {
         console.error('Data Load Error:', err);
-        updateStatus('Firebase Error', false);
-        showToast('Could not load data from Firebase. Check internet connection.', 'error');
+        updateStatus('Connection Error', false);
+        showToast('Could not load data. Check server / Firebase connection.', 'error');
       }
     }
 
@@ -1430,17 +1664,59 @@
       }
     }
 
+    // Helper: format relative timestamp ("Just now", "5m ago", "2h ago", "Yesterday")
+    function formatTimeAgo(timestamp) {
+      if (!timestamp) return 'Never';
+      const now = Date.now();
+      const diff = Math.floor((now - timestamp) / 1000);
+      if (diff < 60) return 'Just now';
+      if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+      if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+      if (diff < 172800) return 'Yesterday';
+      if (diff < 604800) return `${Math.floor(diff / 86400)}d ago`;
+      return new Date(timestamp).toLocaleDateString();
+    }
+
     // ==========================================
     // METRICS RENDERING
     // ==========================================
     function renderMetrics() {
-      const total = state.usersList.length;
-      document.getElementById('mTotalUsers').innerText = total.toLocaleString();
-
       const now = Date.now();
       const oneDay = 24 * 60 * 60 * 1000;
-      const active24h = state.usersList.filter(u => u.lastActive && (now - u.lastActive < oneDay)).length;
+      const total = state.usersList.length;
+
+      // Filter accurate status categories
+      const active24h = state.usersList.filter(u => {
+        const isBotBlocked = Boolean(u.botBlocked);
+        const isAdminBlocked = Boolean(u.isBlocked);
+        return u.lastActive && (now - u.lastActive < oneDay) && !isBotBlocked && !isAdminBlocked;
+      }).length;
+
+      const botBlockedCount = state.usersList.filter(u => Boolean(u.botBlocked)).length;
+      const adminBlockedCount = state.usersList.filter(u => Boolean(u.isBlocked)).length;
+      const inactiveCount = state.usersList.filter(u => {
+        const isBotBlocked = Boolean(u.botBlocked);
+        const isAdminBlocked = Boolean(u.isBlocked);
+        return (!u.lastActive || (now - u.lastActive >= oneDay)) && !isBotBlocked && !isAdminBlocked;
+      }).length;
+      const liveCount = state.liveViewersMap.size || (state.liveStats?.count || 0);
+
+      // Update Metric Cards
+      document.getElementById('mTotalUsers').innerText = total.toLocaleString();
       document.getElementById('mActiveUsers').innerText = active24h.toLocaleString();
+      const elBotBlocked = document.getElementById('mBotBlocked');
+      if (elBotBlocked) elBotBlocked.innerText = botBlockedCount.toLocaleString();
+      const elLive = document.getElementById('mLiveViewers');
+      if (elLive) elLive.innerText = liveCount.toLocaleString();
+
+      // Update Filter Sub-tab Counter Badges
+      const setCnt = (id, val) => { const el = document.getElementById(id); if (el) el.innerText = val.toLocaleString(); };
+      setCnt('cntAll', total);
+      setCnt('cntActive24h', active24h);
+      setCnt('cntLive', liveCount);
+      setCnt('cntBlocked', botBlockedCount);
+      setCnt('cntInactive', inactiveCount);
+      setCnt('cntBanned', adminBlockedCount);
 
       // Total Watch Time in hours
       let totalSeconds = 0;
@@ -1461,10 +1737,6 @@
       const sw = document.getElementById('lockSwitch');
       if (state.isLockEnabled) sw.classList.add('on');
       else sw.classList.remove('on');
-
-      // Posted Videos Count
-      const postedCount = Object.keys(state.postedVideos).length;
-      document.getElementById('mPostedCount').innerText = postedCount.toLocaleString();
     }
 
     // ==========================================
@@ -1610,28 +1882,143 @@
     }
 
     // ==========================================
-    // USERS TAB
+    // USER FILTERING & TABS
+    // ==========================================
+    function setUserFilter(filterName) {
+      state.activeUserFilter = filterName;
+      
+      // Update UI active pill
+      document.querySelectorAll('.filter-pill').forEach(pill => pill.classList.remove('active'));
+      const activePillMap = {
+        'all': 'tabFilterAll',
+        'active24h': 'tabFilterActive24h',
+        'live': 'tabFilterLive',
+        'botBlocked': 'tabFilterBlocked',
+        'inactive': 'tabFilterInactive',
+        'banned': 'tabFilterBanned'
+      };
+      const pillId = activePillMap[filterName];
+      if (pillId && document.getElementById(pillId)) {
+        document.getElementById(pillId).classList.add('active');
+      }
+
+      filterUsers();
+    }
+
+    function filterUsersByTab(filterName) {
+      switchTab('usersTab');
+      setUserFilter(filterName);
+    }
+
+    // Stealth scan to detect users who blocked bot
+    async function scanBlockedUsers() {
+      const btn = document.getElementById('btnScanBlocked');
+      if (btn) {
+        btn.disabled = true;
+        btn.innerText = 'Scanning Telegram... ⏳';
+      }
+      showToast('Starting stealth scan of Telegram users...', 'info');
+
+      try {
+        const res = await fetch('/api/admin/scan-blocked-users', { method: 'POST' });
+        const data = await res.json();
+        if (data && data.success) {
+          showToast(`Scan complete: ${data.totalScanned} checked, ${data.newlyBlockedCount} newly detected blocked!`, 'success');
+          loadAllData(false);
+        } else {
+          showToast(data.error || 'Scan failed', 'error');
+        }
+      } catch (err) {
+        showToast('Scan request failed. Server offline or unreachable.', 'error');
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerText = '🔍 Scan Blocked Users';
+        }
+      }
+    }
+
+    function getFilteredUsersList() {
+      const now = Date.now();
+      const oneDay = 24 * 60 * 60 * 1000;
+      let list = state.usersList;
+
+      switch (state.activeUserFilter) {
+        case 'active24h':
+          list = list.filter(u => u.lastActive && (now - u.lastActive < oneDay) && !u.botBlocked && !u.isBlocked);
+          break;
+        case 'live':
+          list = list.filter(u => state.liveViewersMap.has(String(u.id)));
+          break;
+        case 'botBlocked':
+          list = list.filter(u => Boolean(u.botBlocked));
+          break;
+        case 'inactive':
+          list = list.filter(u => (!u.lastActive || (now - u.lastActive >= oneDay)) && !u.botBlocked && !u.isBlocked);
+          break;
+        case 'banned':
+          list = list.filter(u => Boolean(u.isBlocked));
+          break;
+        case 'all':
+        default:
+          break;
+      }
+
+      return list;
+    }
+
+    // ==========================================
+    // USERS TAB RENDERING
     // ==========================================
     function renderUsers(filteredList = null) {
-      const list = filteredList || state.usersList;
+      const list = filteredList !== null ? filteredList : getFilteredUsersList();
       const tbody = document.getElementById('userTableBody');
 
       if (!list || list.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="empty-state">No users matching search query.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" class="empty-state">No users matching current filter or search query.</td></tr>';
         return;
       }
 
-      // Sort by last active descending
-      const sorted = [...list].sort((a, b) => (b.lastActive || 0) - (a.lastActive || 0));
+      const now = Date.now();
+      const oneDay = 24 * 60 * 60 * 1000;
+
+      // Sort: Live first, then by last active descending
+      const sorted = [...list].sort((a, b) => {
+        const aLive = state.liveViewersMap.has(String(a.id));
+        const bLive = state.liveViewersMap.has(String(b.id));
+        if (aLive && !bLive) return -1;
+        if (!aLive && bLive) return 1;
+        return (b.lastActive || 0) - (a.lastActive || 0);
+      });
 
       tbody.innerHTML = sorted.slice(0, 150).map(u => {
+        const uid = String(u.id);
         const name = `${u.first_name || ''} ${u.last_name || ''}`.trim() || 'Landy User';
         const uname = u.username ? `@${u.username}` : 'No username';
-        const isBlocked = Boolean(u.isBlocked);
+        const isAdminBlocked = Boolean(u.isBlocked);
+        const isBotBlocked = Boolean(u.botBlocked);
+        const isLive = state.liveViewersMap.has(uid);
+        const diffMs = now - (u.lastActive || 0);
+        const is24hActive = (u.lastActive && diffMs < oneDay) && !isBotBlocked && !isAdminBlocked;
+
         const timeSecs = u.watchTimeSeconds || 0;
         const timeFormatted = `${Math.floor(timeSecs / 60)}m ${timeSecs % 60}s`;
         const joinedDate = u.joinedAt ? new Date(u.joinedAt).toLocaleDateString() : 'N/A';
-        const activeDate = u.lastActive ? new Date(u.lastActive).toLocaleTimeString() : 'N/A';
+        const activeDateFormatted = formatTimeAgo(u.lastActive);
+
+        // Status Badge Logic
+        let statusBadge = '';
+        if (isAdminBlocked) {
+          statusBadge = '<span class="badge badge-danger">🛑 ADMIN BANNED</span>';
+        } else if (isBotBlocked) {
+          statusBadge = '<span class="badge badge-rose" title="User deleted or blocked the bot on Telegram">🚫 BOT BLOCKED</span>';
+        } else if (isLive) {
+          statusBadge = '<span class="badge badge-live"><span class="status-dot" style="width: 6px; height: 6px; background: #00f2fe;"></span> LIVE NOW</span>';
+        } else if (is24hActive) {
+          statusBadge = '<span class="badge badge-success">⚡ ACTIVE (24h)</span>';
+        } else {
+          statusBadge = '<span class="badge badge-gray">💤 INACTIVE (>24h)</span>';
+        }
 
         return `
           <tr>
@@ -1646,17 +2033,17 @@
               <span style="font-weight: 800; color: ${timeSecs < 60 ? '#ef4444' : 'var(--accent-green)'}; font-family: 'JetBrains Mono', monospace;">${timeFormatted}</span>
             </td>
             <td style="color: var(--text-dim); font-size: 0.78rem;">${joinedDate}</td>
-            <td style="color: var(--text-dim); font-size: 0.78rem;">${activeDate}</td>
+            <td style="color: ${isLive ? '#00f2fe' : (is24hActive ? 'var(--accent-green)' : 'var(--text-dim)')}; font-size: 0.8rem; font-weight: ${isLive || is24hActive ? '700' : '500'};">
+              ${activeDateFormatted}
+            </td>
             <td>
-              <span style="font-size: 0.75rem; font-weight: 700; padding: 3px 8px; border-radius: 999px; background: ${isBlocked ? 'rgba(239, 68, 68, 0.2)' : 'rgba(16, 185, 129, 0.2)'}; color: ${isBlocked ? '#ef4444' : 'var(--accent-green)'};">
-                ${isBlocked ? 'BLOCKED' : 'ACTIVE'}
-              </span>
+              ${statusBadge}
             </td>
             <td>
               <div style="display: flex; gap: 6px;">
                 <button class="btn btn-secondary btn-sm" onclick="openGrantTimeModal('${u.id}', '${escapeHtml(name)}')">⚡ +Time</button>
-                <button class="btn ${isBlocked ? 'btn-success' : 'btn-danger'} btn-sm" onclick="toggleBlockUser('${u.id}', ${!isBlocked})">
-                  ${isBlocked ? 'Unblock' : 'Block'}
+                <button class="btn ${isAdminBlocked ? 'btn-success' : 'btn-danger'} btn-sm" onclick="toggleBlockUser('${u.id}', ${!isAdminBlocked})">
+                  ${isAdminBlocked ? 'Unban' : 'Ban'}
                 </button>
               </div>
             </td>
@@ -1667,33 +2054,42 @@
 
     function filterUsers() {
       const q = (document.getElementById('userSearchInput').value || '').toLowerCase().trim();
-      if (!q) {
-        renderUsers();
-        return;
+      let list = getFilteredUsersList();
+
+      if (q) {
+        list = list.filter(u => {
+          const id = String(u.id || '').toLowerCase();
+          const name = `${u.first_name || ''} ${u.last_name || ''}`.toLowerCase();
+          const uname = String(u.username || '').toLowerCase();
+          return id.includes(q) || name.includes(q) || uname.includes(q);
+        });
       }
-      const filtered = state.usersList.filter(u => {
-        const id = String(u.id || '').toLowerCase();
-        const name = `${u.first_name || ''} ${u.last_name || ''}`.toLowerCase();
-        const uname = String(u.username || '').toLowerCase();
-        return id.includes(q) || name.includes(q) || uname.includes(q);
-      });
-      renderUsers(filtered);
+
+      renderUsers(list);
     }
 
     async function toggleBlockUser(userId, newBlockedState) {
       try {
-        await fetch(`${DB_URL}/users/${userId}/isBlocked.json`, {
-          method: 'PUT',
+        await fetch('/api/admin/toggle-block', {
+          method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(Boolean(newBlockedState))
+          body: JSON.stringify({ userId, isBlocked: Boolean(newBlockedState) })
+        }).catch(async () => {
+          // Fallback to direct Firebase
+          await fetch(`${DB_URL}/users/${userId}/isBlocked.json`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(Boolean(newBlockedState))
+          });
         });
 
         // Update local state
         const target = state.usersList.find(u => String(u.id) === String(userId));
         if (target) target.isBlocked = Boolean(newBlockedState);
 
+        renderMetrics();
         renderUsers();
-        showToast(`User ${userId} ${newBlockedState ? 'BLOCKED 🚫' : 'UNBLOCKED 🟢'}!`, 'info');
+        showToast(`User ${userId} ${newBlockedState ? 'BANNED 🛑' : 'UNBANNED 🟢'}!`, 'info');
       } catch (e) {
         showToast('Failed to update user block state', 'error');
       }
@@ -1897,19 +2293,23 @@
       const badge = document.getElementById('targetAudienceCountBadge');
       if (!badge) return;
       const filter = document.getElementById('broadcastAudienceFilter')?.value || 'all';
+      const excludeBlocked = document.getElementById('broadcastExcludeBlocked')?.checked ?? true;
       const now = Date.now();
-      const validUsers = state.usersList.filter(u => u && u.id && !u.isBlocked);
+      let validUsers = state.usersList.filter(u => u && u.id && !u.isBlocked);
+      if (excludeBlocked) {
+        validUsers = validUsers.filter(u => !u.botBlocked);
+      }
       
       if (filter === 'all') {
-        badge.innerText = `(${validUsers.length} total users ready)`;
+        badge.innerText = `(${validUsers.length} total valid bot recipients)`;
         badge.style.color = 'var(--accent-cyan)';
       } else if (filter === 'active24h') {
         const count = validUsers.filter(u => u.lastActive && (now - u.lastActive <= 24 * 60 * 60 * 1000)).length;
-        badge.innerText = `(${count} active users ready)`;
+        badge.innerText = `(${count} active 24h recipients)`;
         badge.style.color = '#10b981';
       } else if (filter === 'active7d') {
         const count = validUsers.filter(u => u.lastActive && (now - u.lastActive <= 7 * 24 * 60 * 60 * 1000)).length;
-        badge.innerText = `(${count} active users ready)`;
+        badge.innerText = `(${count} active 7d recipients)`;
         badge.style.color = '#38bdf8';
       } else if (filter === 'custom') {
         const customId = document.getElementById('broadcastCustomUserId')?.value.trim();
@@ -2155,9 +2555,10 @@
           return;
         }
         queue = [{ id: customId }];
-      } else {
+        const excludeBlocked = document.getElementById('broadcastExcludeBlocked')?.checked ?? true;
         queue = state.usersList.filter(u => {
           if (!u || !u.id || u.isBlocked) return false;
+          if (excludeBlocked && u.botBlocked) return false;
           if (audienceFilter === 'active24h') {
             return u.lastActive && (now - u.lastActive <= 24 * 60 * 60 * 1000);
           }
@@ -2193,6 +2594,7 @@
 
       let sentCount = 0;
       let failedCount = 0;
+      let blockedCount = 0;
       const total = queue.length;
 
       for (let i = 0; i < total; i++) {
@@ -2219,6 +2621,17 @@
             sentCount++;
           } else {
             failedCount++;
+            const desc = (tgData.description || '').toLowerCase();
+            if (desc.includes('blocked by the user') || desc.includes('chat not found') || desc.includes('deactivated') || desc.includes('kicked') || desc.includes('forbidden')) {
+              user.botBlocked = true;
+              blockedCount++;
+              // Mark user bot blocked via backend
+              fetch('/api/admin/toggle-block', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: user.id, isBlocked: false, botBlocked: true })
+              }).catch(() => {});
+            }
           }
         } catch (err) {
           failedCount++;

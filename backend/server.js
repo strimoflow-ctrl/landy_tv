@@ -24,7 +24,17 @@ const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
 const cheerio = require('cheerio');
-const { DB_URL } = require('./firebase');
+const { 
+    DB_URL, 
+    getAllUsers, 
+    markUserBotBlocked, 
+    saveOrUpdateUser, 
+    isUserBlocked, 
+    getUserData, 
+    updateUserWatchTime, 
+    updateUserSavedVideos, 
+    updateAdPackProgress 
+} = require('./firebase');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -382,13 +392,7 @@ app.get('/api/health', (req, res) => {
 const { verifyAllChannels, getActiveChannels } = require('./bot/verify');
 const { 
     getBotSettings, 
-    updateBotSettings, 
-    saveOrUpdateUser, 
-    isUserBlocked,
-    getUserData,
-    updateUserWatchTime,
-    updateUserSavedVideos,
-    updateAdPackProgress
+    updateBotSettings 
 } = require('./firebase');
 const TelegramBotPackage = require('node-telegram-bot-api');
 const TelegramBot = TelegramBotPackage.default || TelegramBotPackage.TelegramBot || TelegramBotPackage;
@@ -443,37 +447,122 @@ app.post('/api/admin/toggle-lock', async (req, res) => {
     }
 });
 
-// 3.1 Get All Users from Firebase for Admin Dashboard with 24h/1h/Blocked stats
+// ==============================================================
+// 3.0 LIVE VIEWERS IN-MEMORY REGISTRY (Zero Firebase Load!)
+// ==============================================================
+const liveViewers = new Map();
+
+// Culler: clean up users who haven't pinged in 45 seconds
+setInterval(() => {
+    const now = Date.now();
+    for (const [uid, viewer] of liveViewers.entries()) {
+        if (now - viewer.lastPing > 45000) {
+            liveViewers.delete(uid);
+        }
+    }
+}, 15000);
+
+// 3.0.1 Mini App Heartbeat (Direct to Express server, bypasses Firebase)
+app.post('/api/live/heartbeat', (req, res) => {
+    const { userId, name, username, currentVideo, page } = req.body || {};
+    if (!userId || userId === 'guest_user') {
+        return res.json({ success: true, liveCount: liveViewers.size });
+    }
+
+    const uid = String(userId);
+    const now = Date.now();
+    const existing = liveViewers.get(uid);
+
+    liveViewers.set(uid, {
+        userId: uid,
+        name: name || existing?.name || 'User',
+        username: username || existing?.username || '',
+        currentVideo: currentVideo || existing?.currentVideo || null,
+        page: page || existing?.page || 'home',
+        lastPing: now,
+        connectedAt: existing?.connectedAt || now
+    });
+
+    res.json({
+        success: true,
+        liveCount: liveViewers.size
+    });
+});
+
+// 3.0.2 Admin Live Stats (Count & detailed real-time active viewers)
+app.get('/api/admin/live-stats', (req, res) => {
+    const viewers = Array.from(liveViewers.values()).map(v => ({
+        ...v,
+        onlineDurationSeconds: Math.floor((Date.now() - v.connectedAt) / 1000)
+    }));
+    res.json({
+        success: true,
+        count: liveViewers.size,
+        viewers
+    });
+});
+
+// 3.1 Get All Users from in-memory cache with accurate 24h/Live/Blocked classifications
 app.get('/api/admin/users', async (req, res) => {
     try {
-        const fbRes = await axios.get(`${DB_URL}/users.json`, { timeout: 8000 });
-        const data = fbRes.data || {};
-        const users = Object.keys(data).map(key => ({
-            id: key,
-            ...data[key]
-        }));
-        
-        // Sort by last active descending (most active first)
-        users.sort((a, b) => (b.lastActive || 0) - (a.lastActive || 0));
-
+        const forceRefresh = req.query.refresh === 'true';
+        const data = await getAllUsers(forceRefresh);
         const now = Date.now();
         const oneHour = 60 * 60 * 1000;
         const oneDay = 24 * 60 * 60 * 1000;
         const sevenDays = 7 * 24 * 60 * 60 * 1000;
 
-        const active1h = users.filter(u => u.lastActive && (now - u.lastActive) < oneHour).length;
-        const active24h = users.filter(u => u.lastActive && (now - u.lastActive) < oneDay).length;
-        const active7d = users.filter(u => u.lastActive && (now - u.lastActive) < sevenDays).length;
-        const blockedUsers = users.filter(u => Boolean(u.isBlocked)).length;
+        const users = Object.keys(data).map(key => {
+            const u = data[key] || {};
+            const uid = String(u.id || key);
+            const isLive = liveViewers.has(uid);
+            const lastActiveTime = u.lastActive || 0;
+            const diff = now - lastActiveTime;
+
+            let computedStatus = 'inactive';
+            if (u.isBlocked) {
+                computedStatus = 'admin_blocked';
+            } else if (u.botBlocked) {
+                computedStatus = 'bot_blocked';
+            } else if (isLive) {
+                computedStatus = 'live';
+            } else if (lastActiveTime && diff < oneDay) {
+                computedStatus = 'active_24h';
+            }
+
+            return {
+                id: uid,
+                ...u,
+                isLive,
+                computedStatus
+            };
+        });
+
+        // Sort: Live first, then by last active descending
+        users.sort((a, b) => {
+            if (a.isLive && !b.isLive) return -1;
+            if (!a.isLive && b.isLive) return 1;
+            return (b.lastActive || 0) - (a.lastActive || 0);
+        });
+
+        const active1h = users.filter(u => u.lastActive && (now - u.lastActive) < oneHour && !u.isBlocked && !u.botBlocked).length;
+        const active24h = users.filter(u => u.lastActive && (now - u.lastActive) < oneDay && !u.isBlocked && !u.botBlocked).length;
+        const active7d = users.filter(u => u.lastActive && (now - u.lastActive) < sevenDays && !u.isBlocked && !u.botBlocked).length;
+        const botBlockedUsers = users.filter(u => Boolean(u.botBlocked)).length;
+        const adminBlockedUsers = users.filter(u => Boolean(u.isBlocked)).length;
+        const inactiveUsers = users.filter(u => (!u.lastActive || (now - u.lastActive) >= oneDay) && !u.isBlocked && !u.botBlocked).length;
 
         res.json({
             success: true,
             totalUsers: users.length,
+            liveCount: liveViewers.size,
             active1h,
             active24h,
             activeToday: active24h,
             active7d,
-            blockedUsers,
+            botBlockedUsers,
+            adminBlockedUsers,
+            inactiveUsers,
             users
         });
     } catch (err) {
@@ -482,24 +571,31 @@ app.get('/api/admin/users', async (req, res) => {
     }
 });
 
-// 3.2 Block / Unblock User from Admin Dashboard
+// 3.2 Block / Unblock User from Admin Dashboard (or update botBlocked)
 app.post('/api/admin/toggle-block', async (req, res) => {
-    const { userId, isBlocked } = req.body;
+    const { userId, isBlocked, botBlocked } = req.body;
     if (!userId) {
         return res.status(400).json({ success: false, error: 'User ID is required' });
     }
     try {
-        await axios.patch(`${DB_URL}/users/${userId}.json`, { isBlocked: Boolean(isBlocked) }, { timeout: 6000 });
-        console.log(`[Admin] User ${userId} blocked status set to: ${Boolean(isBlocked)}`);
-        res.json({ success: true, userId, isBlocked: Boolean(isBlocked) });
+        const patchData = {};
+        if (isBlocked !== undefined) patchData.isBlocked = Boolean(isBlocked);
+        if (botBlocked !== undefined) {
+            patchData.botBlocked = Boolean(botBlocked);
+            await markUserBotBlocked(userId, Boolean(botBlocked));
+        } else if (Object.keys(patchData).length > 0) {
+            await axios.patch(`${DB_URL}/users/${userId}.json`, patchData, { timeout: 6000 });
+        }
+        console.log(`[Admin] User ${userId} status updated:`, patchData);
+        res.json({ success: true, userId, ...patchData });
     } catch (err) {
         res.status(500).json({ success: false, error: err.message });
     }
 });
 
-// 3.3 Admin Broadcast Message to Users with Dynamic Inline Buttons (Optimized Parallel Batching)
+// 3.3 Admin Broadcast Message with Bot Block Detection & Filtering
 app.post('/api/admin/broadcast', async (req, res) => {
-    const { text, photoUrl, buttons, targetFilter } = req.body;
+    const { text, photoUrl, buttons, targetFilter, excludeBlocked = true } = req.body;
 
     if (!text && !photoUrl) {
         return res.status(400).json({ success: false, error: 'Message text or photoUrl is required.' });
@@ -510,15 +606,19 @@ app.post('/api/admin/broadcast', async (req, res) => {
     }
 
     try {
-        const fbRes = await axios.get(`${DB_URL}/users.json`, { timeout: 10000 });
-        const data = fbRes.data || {};
+        const data = await getAllUsers(false);
         let userList = Object.keys(data).map(key => ({
             id: key,
             ...data[key]
         }));
 
-        // Exclude blocked users from broadcasts
+        // Exclude admin-suspended users
         userList = userList.filter(u => !u.isBlocked);
+
+        // Exclude bot-blocked/deleted users if requested (default true)
+        if (excludeBlocked) {
+            userList = userList.filter(u => !u.botBlocked);
+        }
 
         const now = Date.now();
         if (targetFilter === 'active1h') {
@@ -527,10 +627,12 @@ app.post('/api/admin/broadcast', async (req, res) => {
             userList = userList.filter(u => u.lastActive && (now - u.lastActive) < 86400000);
         } else if (targetFilter === 'active7d') {
             userList = userList.filter(u => u.lastActive && (now - u.lastActive) < 7 * 86400000);
+        } else if (targetFilter === 'inactive') {
+            userList = userList.filter(u => !u.lastActive || (now - u.lastActive) >= 86400000);
         }
 
         if (userList.length === 0) {
-            return res.json({ success: true, message: 'No users found matching the filter.', sentCount: 0, failedCount: 0, total: 0 });
+            return res.json({ success: true, message: 'No users found matching the filter.', sentCount: 0, failedCount: 0, blockedDetected: 0, total: 0 });
         }
 
         // Format keyboard
@@ -555,12 +657,13 @@ app.post('/api/admin/broadcast', async (req, res) => {
 
         const replyMarkup = inlineKeyboard.length > 0 ? { inline_keyboard: inlineKeyboard } : undefined;
 
-        console.log(`[Admin Broadcast] Starting fast parallel broadcast to ${userList.length} user(s)...`);
+        console.log(`[Admin Broadcast] Starting parallel broadcast to ${userList.length} user(s)...`);
 
         let sentCount = 0;
         let failedCount = 0;
+        let blockedDetected = 0;
 
-        // Helper to send message to single user with timeout and safe fallback
+        // Helper to send message with auto-detection of blocked/deleted users
         async function sendToUser(user) {
             const chatId = user.id;
             try {
@@ -594,13 +697,22 @@ app.post('/api/admin/broadcast', async (req, res) => {
                     });
                 }
                 sentCount++;
-                console.log(`[Broadcast Delivered] User ${chatId} (${user.username || user.first_name || 'User'})`);
             } catch (err) {
                 failedCount++;
+                const errMsg = (err.message || '').toLowerCase();
+                if (errMsg.includes('blocked by the user') || 
+                    errMsg.includes('chat not found') || 
+                    errMsg.includes('user is deactivated') || 
+                    errMsg.includes('bot was kicked') ||
+                    errMsg.includes('forbidden')) {
+                    blockedDetected++;
+                    await markUserBotBlocked(chatId, true);
+                    console.log(`[Broadcast] Detected user ${chatId} blocked the bot.`);
+                }
             }
         }
 
-        // Process in concurrent batches of 10 users with 50ms interval between batches
+        // Process in batches of 10 users with 60ms delay
         const BATCH_SIZE = 10;
         for (let i = 0; i < userList.length; i += BATCH_SIZE) {
             const batch = userList.slice(i, i + BATCH_SIZE);
@@ -610,16 +722,63 @@ app.post('/api/admin/broadcast', async (req, res) => {
             }
         }
 
-        console.log(`[Admin Broadcast Completed] Sent: ${sentCount}, Failed/Inactive: ${failedCount}, Total: ${userList.length}`);
+        console.log(`[Admin Broadcast Completed] Sent: ${sentCount}, Failed: ${failedCount}, Blocked Detected: ${blockedDetected}, Total: ${userList.length}`);
         return res.json({
             success: true,
             total: userList.length,
             sentCount,
-            failedCount
+            failedCount,
+            blockedDetected
         });
 
     } catch (err) {
         console.error('[Admin Broadcast Error]:', err.message);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// 3.4 Stealth Scan to Detect Inactive / Blocked Users
+app.post('/api/admin/scan-blocked-users', async (req, res) => {
+    if (!verifierBot) {
+        return res.status(500).json({ success: false, error: 'Telegram Bot is not initialized.' });
+    }
+
+    try {
+        const data = await getAllUsers(true);
+        const userList = Object.keys(data).map(k => ({ id: k, ...data[k] })).filter(u => !u.isBlocked);
+        let checked = 0;
+        let newlyBlocked = 0;
+
+        // Stealth check via sendChatAction (typing indicator)
+        const BATCH_SIZE = 8;
+        for (let i = 0; i < userList.length; i += BATCH_SIZE) {
+            const batch = userList.slice(i, i + BATCH_SIZE);
+            await Promise.all(batch.map(async (u) => {
+                checked++;
+                try {
+                    await verifierBot.sendChatAction(u.id, 'typing');
+                    if (u.botBlocked) {
+                        await markUserBotBlocked(u.id, false);
+                    }
+                } catch (err) {
+                    const msg = (err.message || '').toLowerCase();
+                    if (msg.includes('blocked by the user') || msg.includes('chat not found') || msg.includes('deactivated')) {
+                        newlyBlocked++;
+                        await markUserBotBlocked(u.id, true);
+                    }
+                }
+            }));
+            if (i + BATCH_SIZE < userList.length) {
+                await new Promise(r => setTimeout(r, 100));
+            }
+        }
+
+        res.json({
+            success: true,
+            totalScanned: checked,
+            newlyBlockedCount: newlyBlocked
+        });
+    } catch (err) {
         res.status(500).json({ success: false, error: err.message });
     }
 });
@@ -767,6 +926,15 @@ app.get('/api/check-subscription', async (req, res) => {
         console.error('[API Check Subscription Error]:', err.message);
         return res.json({ success: true, isBlocked: false, isSubscribed: false, unjoined: channels, channels, error: err.message });
     }
+});
+
+// Explicit admin panel handler
+app.get(['/admin', '/admin.html'], (req, res) => {
+    const adminPathDist = path.join(distPath, 'admin.html');
+    if (fs.existsSync(adminPathDist)) return res.sendFile(adminPathDist);
+    const adminRoot = path.join(__dirname, '../admin.html');
+    if (fs.existsSync(adminRoot)) return res.sendFile(adminRoot);
+    res.status(404).send('Admin panel not found');
 });
 
 // Explicit root handler for instant 200 OK

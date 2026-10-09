@@ -1,7 +1,7 @@
 import React from 'react';
 import { Search, X } from 'lucide-react';
 
-export default function Header({ showSearch, setShowSearch, searchQuery, setSearchQuery }) {
+export default function Header({ showSearch, setShowSearch, searchQuery, setSearchQuery, onOpenTutorial }) {
   return (
     <>
       <header className="app-header glass">
@@ -13,14 +13,28 @@ export default function Header({ showSearch, setShowSearch, searchQuery, setSear
           </div>
         </div>
 
-        <button 
-          className="action-btn"
-          style={{ width: '38px', height: '38px', borderRadius: '50%', padding: 0, flex: 'none' }}
-          onClick={() => setShowSearch(!showSearch)}
-          aria-label="Toggle Search"
-        >
-          {showSearch ? <X size={18} /> : <Search size={18} />}
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {onOpenTutorial && (
+            <button 
+              className="action-btn"
+              style={{ width: '38px', height: '38px', borderRadius: '50%', padding: 0, flex: 'none', background: 'rgba(0, 242, 254, 0.12)', border: '1px solid rgba(0, 242, 254, 0.3)' }}
+              onClick={onOpenTutorial}
+              aria-label="Voice Guide"
+              title="Voice Tutorial"
+            >
+              🎧
+            </button>
+          )}
+
+          <button 
+            className="action-btn"
+            style={{ width: '38px', height: '38px', borderRadius: '50%', padding: 0, flex: 'none' }}
+            onClick={() => setShowSearch(!showSearch)}
+            aria-label="Toggle Search"
+          >
+            {showSearch ? <X size={18} /> : <Search size={18} />}
+          </button>
+        </div>
       </header>
 
       {showSearch && (

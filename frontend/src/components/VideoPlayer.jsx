@@ -3,6 +3,7 @@ import { ArrowLeft, Heart, Bookmark, Share2, Eye, Clock, Sparkles, Maximize, Min
 import { fetchVideoSource, fetchRelatedVideos } from '../utils/api';
 import { isVideoSaved, toggleSaveVideo, addToWatchHistory } from '../utils/storage';
 import { showRewardedAd } from '../utils/monetag';
+import TutorialModal from './TutorialModal';
 
 export default function VideoPlayer({ 
   video, 
@@ -13,6 +14,7 @@ export default function VideoPlayer({
   onOpenEarnTime,
   userId
 }) {
+  const [showTutorialModal, setShowTutorialModal] = useState(false);
   const [sourceUrl, setSourceUrl] = useState(video.videoSource || null);
   const [loading, setLoading] = useState(!video.videoSource);
   const [saved, setSaved] = useState(isVideoSaved(video.url));
@@ -654,6 +656,26 @@ export default function VideoPlayer({
               </button>
 
               <button
+                onClick={() => setShowTutorialModal(true)}
+                style={{
+                  background: 'rgba(0, 242, 254, 0.1)',
+                  border: '1px solid rgba(0, 242, 254, 0.3)',
+                  color: '#00f2fe',
+                  padding: '11px',
+                  borderRadius: '14px',
+                  fontWeight: 700,
+                  fontSize: '13px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px'
+                }}
+              >
+                <span>🎧 Voice Tutorial (Kaise Dekhein?)</span>
+              </button>
+
+              <button
                 onClick={() => {
                   onClose();
                   if (onOpenEarnTime) onOpenEarnTime();
@@ -690,6 +712,14 @@ export default function VideoPlayer({
           </div>
         </div>
       )}
+
+      {/* Voice-Guided Tutorial Modal */}
+      <TutorialModal
+        isOpen={showTutorialModal}
+        onClose={() => setShowTutorialModal(false)}
+        onWatchAd={handleWatchAdRefill}
+        adLoading={adLoading}
+      />
 
       {/* Toast Notification */}
       {toast && (

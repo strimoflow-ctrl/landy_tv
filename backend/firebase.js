@@ -251,6 +251,55 @@ async function markVideoPosted(video, channelId = '') {
   }
 }
 
+// ==============================================================
+// IN-MEMORY USER CACHE (Saves over 90% Firebase bandwidth)
+// ==============================================================
+let cachedUsers = null;
+let lastUsersFetch = 0;
+const USERS_CACHE_TTL = 45 * 1000; // 45 seconds
+
+async function getAllUsers(forceRefresh = false) {
+  const now = Date.now();
+  if (!forceRefresh && cachedUsers && (now - lastUsersFetch < USERS_CACHE_TTL)) {
+    return cachedUsers;
+  }
+
+  try {
+    const res = await axios.get(`${DB_URL}/users.json`, { timeout: 8000 });
+    const data = res.data || {};
+    cachedUsers = data;
+    lastUsersFetch = now;
+    return cachedUsers;
+  } catch (err) {
+    console.warn('[Firebase DB] Could not fetch all users:', err.message);
+    return cachedUsers || {};
+  }
+}
+
+/**
+ * Mark a user as botBlocked (user blocked or deleted the bot on Telegram)
+ */
+async function markUserBotBlocked(userId, isBlocked = true) {
+  if (!userId) return;
+  const uid = String(userId);
+  const now = Date.now();
+  try {
+    await axios.patch(`${DB_URL}/users/${uid}.json`, {
+      botBlocked: Boolean(isBlocked),
+      blockedAt: isBlocked ? now : null
+    }, { timeout: 5000 });
+
+    if (cachedUsers && cachedUsers[uid]) {
+      cachedUsers[uid].botBlocked = Boolean(isBlocked);
+      cachedUsers[uid].blockedAt = isBlocked ? now : null;
+    }
+    return true;
+  } catch (err) {
+    console.warn(`[Firebase DB] Error marking botBlocked for ${uid}:`, err.message);
+    return false;
+  }
+}
+
 module.exports = {
   firebaseConfig,
   DB_URL,
@@ -263,6 +312,9 @@ module.exports = {
   updateUserSavedVideos,
   updateAdPackProgress,
   isVideoAlreadyPosted,
-  markVideoPosted
+  markVideoPosted,
+  getAllUsers,
+  markUserBotBlocked
 };
+
 

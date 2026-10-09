@@ -8,6 +8,7 @@ import SavedVideos from './components/SavedVideos';
 import ProfileView from './components/ProfileView';
 import EarnTimeView from './components/EarnTimeView';
 import ForceSubModal from './components/ForceSubModal';
+import TutorialModal from './components/TutorialModal';
 import { fetchVideos, searchVideos } from './utils/api';
 import { syncSavedVideosFromFirebase } from './utils/storage';
 import { getTelegramUser, initTelegramApp } from './utils/telegram';
@@ -38,6 +39,9 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
+
+  // Global Tutorial Modal State
+  const [showGlobalTutorial, setShowGlobalTutorial] = useState(false);
 
   // Ref to prevent duplicate concurrent page loads
   const loadingRef = useRef(false);
@@ -94,6 +98,27 @@ export default function App() {
     }
   }, [userId]);
 
+  // Live Heartbeat to Express Server (In-memory, ZERO Firebase bandwidth!)
+  const sendLiveHeartbeat = useCallback(async () => {
+    const user = getTelegramUser() || tgUser;
+    const activeUid = user?.id || userId;
+    if (!activeUid || activeUid === 'guest_user') return;
+
+    try {
+      fetch('/api/live/heartbeat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: activeUid,
+          name: `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'Viewer',
+          username: user.username || '',
+          currentVideo: currentVideo ? { title: currentVideo.title, url: currentVideo.url } : null,
+          page: activeNav
+        })
+      }).catch(() => {});
+    } catch (e) {}
+  }, [tgUser, userId, currentVideo, activeNav]);
+
   // Live Subscription & Block Checker (Real Telegram Sessions only, bypass on localhost)
   const checkSubscriptionStatus = useCallback(async () => {
     const user = getTelegramUser();
@@ -138,7 +163,7 @@ export default function App() {
     }
   }, [currentVideo, isSubscribed, isBlocked]);
 
-  // Telegram SDK Init & Deep Link Auto-Play
+  // Telegram SDK Init & Deep Link Auto-Play + Optimized Timers
   useEffect(() => {
     const tg = window.Telegram?.WebApp;
     if (tg) {
@@ -146,15 +171,25 @@ export default function App() {
       tg.ready();
     }
 
-    // Sync activity & check subscription immediately on app launch
+    // 1. Initial Load: Sync activity & subscription once
     syncUserActivity();
     checkSubscriptionStatus();
+    sendLiveHeartbeat();
 
-    // Re-verify periodically every 30s
-    const timer = setInterval(() => {
-      syncUserActivity();
+    // 2. High-Frequency Heartbeat to Server only (Every 15s, 0 Firebase load)
+    const heartbeatTimer = setInterval(() => {
+      sendLiveHeartbeat();
+    }, 15000);
+
+    // 3. Low-Frequency Subscription verification (Every 60s)
+    const subTimer = setInterval(() => {
       checkSubscriptionStatus();
-    }, 30000);
+    }, 60000);
+
+    // 4. Low-Frequency Firebase user sync (Every 5 minutes, saves Firebase usage!)
+    const fbSyncTimer = setInterval(() => {
+      syncUserActivity();
+    }, 5 * 60 * 1000);
 
     try {
       const urlParams = new URLSearchParams(window.location.search);
@@ -184,8 +219,12 @@ export default function App() {
       console.warn('Could not parse start param:', err);
     }
 
-    return () => clearInterval(timer);
-  }, [checkSubscriptionStatus, syncUserActivity]);
+    return () => {
+      clearInterval(heartbeatTimer);
+      clearInterval(subTimer);
+      clearInterval(fbSyncTimer);
+    };
+  }, [checkSubscriptionStatus, syncUserActivity, sendLiveHeartbeat]);
 
   // Realtime Infinite Video Loader
   const loadMoreVideos = useCallback(async () => {
@@ -318,6 +357,17 @@ export default function App() {
         setShowSearch={setShowSearch}
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
+        onOpenTutorial={() => setShowGlobalTutorial(true)}
+      />
+
+      {/* Global Voice-Guided Tutorial Modal */}
+      <TutorialModal
+        isOpen={showGlobalTutorial}
+        onClose={() => setShowGlobalTutorial(false)}
+        onWatchAd={() => {
+          setShowGlobalTutorial(false);
+          setActiveNav('earn_time');
+        }}
       />
 
       {/* Main Content Area */}
