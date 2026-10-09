@@ -1322,17 +1322,23 @@
           <input type="text" class="input-control" id="cfgWebAppUrl" value="https://landytv-production-7d26.up.railway.app">
         </div>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
           <div class="input-group">
-            <label class="input-label">Default Watch Time for New Users (Seconds)</label>
+            <label class="input-label">Default Watch Time (New Users)</label>
             <input type="number" class="input-control" id="cfgDefaultTime" value="180">
             <span style="font-size: 0.72rem; color: var(--text-dim);">180s = 3 minutes</span>
           </div>
 
           <div class="input-group">
-            <label class="input-label">Reward Time per Monetag Ad (Seconds)</label>
+            <label class="input-label">Reward Time per Ad (Seconds)</label>
             <input type="number" class="input-control" id="cfgAdReward" value="60">
             <span style="font-size: 0.72rem; color: var(--text-dim);">60s = 1 minute</span>
+          </div>
+
+          <div class="input-group">
+            <label class="input-label">Referral Bonus per Friend (Seconds)</label>
+            <input type="number" class="input-control" id="cfgReferralReward" value="300">
+            <span style="font-size: 0.72rem; color: var(--text-dim);">300s = 5 minutes per invite</span>
           </div>
         </div>
 
@@ -2020,11 +2026,18 @@
           statusBadge = '<span class="badge badge-gray">💤 INACTIVE (>24h)</span>';
         }
 
+        const refCount = u.referralCount || 0;
+        const refBadge = refCount > 0 ? `<span style="font-size: 0.68rem; background: rgba(16, 185, 129, 0.18); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.35); padding: 1px 6px; border-radius: 4px; font-weight: 700; margin-left: 6px;">👥 ${refCount} Invites</span>` : '';
+        const referredInfo = u.referredBy ? ` • Ref by: ${u.referredBy}` : '';
+
         return `
           <tr>
             <td>
-              <div style="font-weight: 700; color: #fff;">${escapeHtml(name)}</div>
-              <div style="font-size: 0.75rem; color: var(--text-dim);">${escapeHtml(uname)}</div>
+              <div style="font-weight: 700; color: #fff; display: flex; align-items: center;">
+                <span>${escapeHtml(name)}</span>
+                ${refBadge}
+              </div>
+              <div style="font-size: 0.75rem; color: var(--text-dim);">${escapeHtml(uname)}${referredInfo}</div>
             </td>
             <td>
               <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; background: rgba(255,255,255,0.06); padding: 2px 6px; border-radius: 4px; cursor: pointer;" title="Click to copy" onclick="copyText('${u.id}')">${u.id}</span>
@@ -2662,6 +2675,7 @@
       document.getElementById('cfgWelcomeText').value = state.botSettings.welcomeText || '';
       document.getElementById('cfgDefaultTime').value = state.botSettings.defaultWatchTimeSeconds || 180;
       document.getElementById('cfgAdReward').value = state.botSettings.adRewardSeconds || 60;
+      document.getElementById('cfgReferralReward').value = state.botSettings.referralRewardSeconds || 300;
       document.getElementById('cfgWebAppUrl').value = state.botSettings.webAppUrl || 'https://landytv-production-7d26.up.railway.app';
     }
 
@@ -2675,6 +2689,7 @@
       const welcomeText = document.getElementById('cfgWelcomeText').value;
       const defaultWatchTimeSeconds = parseInt(document.getElementById('cfgDefaultTime').value) || 180;
       const adRewardSeconds = parseInt(document.getElementById('cfgAdReward').value) || 60;
+      const referralRewardSeconds = parseInt(document.getElementById('cfgReferralReward').value) || 300;
       const webAppUrl = document.getElementById('cfgWebAppUrl').value.trim();
 
       try {
@@ -2685,6 +2700,7 @@
             welcomeText,
             defaultWatchTimeSeconds,
             adRewardSeconds,
+            referralRewardSeconds,
             webAppUrl
           })
         });

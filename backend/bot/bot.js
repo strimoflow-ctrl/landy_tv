@@ -9,7 +9,7 @@ const TelegramBotPackage = require('node-telegram-bot-api');
 const TelegramBot = TelegramBotPackage.default || TelegramBotPackage.TelegramBot || TelegramBotPackage;
 const path = require('path');
 const dotenv = require('dotenv');
-const { saveOrUpdateUser, isUserBlocked, markUserBotBlocked } = require('../firebase');
+const { saveOrUpdateUser, isUserBlocked, markUserBotBlocked, processReferral } = require('../firebase');
 const { 
   getActiveChannels, 
   verifyAllChannels, 
@@ -91,6 +91,15 @@ if (BOT_TOKEN && BOT_TOKEN !== 'YOUR_BOT_TOKEN_HERE') {
 
         // Save user to Firebase
         await saveOrUpdateUser(user);
+
+        // Process referral if user came via referral link
+        if (startParam && (startParam.startsWith('ref_') || startParam.startsWith('ref'))) {
+          const referrerId = startParam.replace(/^ref_?/, '').trim();
+          if (referrerId && referrerId !== String(user.id)) {
+            console.log(`[Referral] User ${user.id} joined via referrer ${referrerId}`);
+            await processReferral(user.id, referrerId, mainBot);
+          }
+        }
 
         // Build direct App launch buttons
         let appUrl = WEB_APP_URL;

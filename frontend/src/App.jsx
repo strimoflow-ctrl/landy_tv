@@ -14,7 +14,14 @@ import { getTelegramUser, initTelegramApp } from './utils/telegram';
 
 export default function App() {
   const [activeNav, setActiveNav] = useState('home');
-  const [videos, setVideos] = useState([]);
+  const [videos, setVideos] = useState(() => {
+    try {
+      const cached = sessionStorage.getItem('landy_cached_p1_videos');
+      return cached ? JSON.parse(cached) : [];
+    } catch (e) {
+      return [];
+    }
+  });
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -191,23 +198,40 @@ export default function App() {
       const urlParams = new URLSearchParams(window.location.search);
       let param = tg?.initDataUnsafe?.start_param || urlParams.get('start');
       if (param) {
-        if (param.startsWith('v_')) param = param.substring(2);
-        try {
-          const decoded = atob(param);
-          if (decoded && decoded.startsWith('http')) {
-            setCurrentVideo({
-              title: 'Now Playing',
-              url: decoded,
-              thumbnail: '/logo.jpg'
-            });
+        // 1. Check if referral parameter (ref_USERID)
+        if (param.startsWith('ref_') || param.startsWith('ref')) {
+          const refId = param.replace(/^ref_?/, '').trim();
+          const activeUid = tgUser?.id || getTelegramUser()?.id;
+          if (refId && activeUid && refId !== String(activeUid)) {
+            fetch('/api/user/claim-referral', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ userId: activeUid, referrerId: refId })
+            }).then(r => r.json()).then(d => {
+              if (d.success) syncUserActivity();
+            }).catch(() => {});
           }
-        } catch (e) {
-          if (param.startsWith('http')) {
-            setCurrentVideo({
-              title: 'Now Playing',
-              url: param,
-              thumbnail: '/logo.jpg'
-            });
+        } else {
+          // 2. Direct Video Deep Link
+          let vParam = param;
+          if (vParam.startsWith('v_')) vParam = vParam.substring(2);
+          try {
+            const decoded = atob(vParam);
+            if (decoded && decoded.startsWith('http')) {
+              setCurrentVideo({
+                title: 'Now Playing',
+                url: decoded,
+                thumbnail: '/logo.jpg'
+              });
+            }
+          } catch (e) {
+            if (vParam.startsWith('http')) {
+              setCurrentVideo({
+                title: 'Now Playing',
+                url: vParam,
+                thumbnail: '/logo.jpg'
+              });
+            }
           }
         }
       }
@@ -222,7 +246,7 @@ export default function App() {
     };
   }, [checkSubscriptionStatus, syncUserActivity, sendLiveHeartbeat]);
 
-  // Realtime Infinite Video Loader
+  // Realtime Infinite Video Loader (Instant 0ms with local cache)
   const loadMoreVideos = useCallback(async () => {
     if (loadingRef.current || !hasMore) return;
     loadingRef.current = true;
@@ -232,6 +256,9 @@ export default function App() {
     const newVideos = await fetchVideos(currentPage);
 
     if (newVideos && newVideos.length > 0) {
+      if (currentPage === 1) {
+        try { sessionStorage.setItem('landy_cached_p1_videos', JSON.stringify(newVideos)); } catch (e) {}
+      }
       setVideos(prev => {
         const seen = new Set(prev.map(v => v.url));
         const filtered = newVideos.filter(v => !seen.has(v.url));

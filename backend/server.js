@@ -33,7 +33,8 @@ const {
     getUserData, 
     updateUserWatchTime, 
     updateUserSavedVideos, 
-    updateAdPackProgress 
+    updateAdPackProgress,
+    processReferral 
 } = require('./firebase');
 
 const app = express();
@@ -205,6 +206,20 @@ async function handleVideosFeed(req, res) {
 app.get('/api/videos', handleVideosFeed);
 app.get('/api/all', handleVideosFeed);
 app.get('/api/trending', handleVideosFeed);
+
+// Cache Pre-warmer: keeps page 1 ready in RAM so users open the app in 0ms!
+async function prewarmFeedCache() {
+    try {
+        const response = await fetchPage(`${BASE_SOURCE_URL}/`);
+        const $ = cheerio.load(response.data);
+        const videos = extractVideos($, BASE_SOURCE_URL);
+        if (videos && videos.length > 0) {
+            setCached('realtime_feed_page_1', videos);
+        }
+    } catch (err) {}
+}
+prewarmFeedCache();
+setInterval(prewarmFeedCache, 3 * 60 * 1000); // refresh every 3 minutes
 
 // Search Route (Live scraping search results)
 app.get('/api/search', async (req, res) => {
@@ -860,6 +875,20 @@ app.post('/api/user/claim-ad-reward', async (req, res) => {
             Number(targetCount) || 5, 
             Number(rewardSeconds) || 300
         );
+        res.json({ success: true, ...result });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// 3.8 Claim Referral Bonus from Mini App
+app.post('/api/user/claim-referral', async (req, res) => {
+    const { userId, referrerId } = req.body;
+    if (!userId || !referrerId) {
+        return res.status(400).json({ success: false, error: 'userId and referrerId are required' });
+    }
+    try {
+        const result = await processReferral(userId, referrerId, verifierBot);
         res.json({ success: true, ...result });
     } catch (err) {
         res.status(500).json({ success: false, error: err.message });

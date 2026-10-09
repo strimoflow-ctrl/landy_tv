@@ -31,7 +31,8 @@ const DEFAULT_BOT_SETTINGS = {
     { name: "📢 Join Bet HP 💎", url: "https://t.me/bet_hp", username: "@bet_hp" }
   ],
   supportUrl: "https://t.me/landy_tv",
-  channelLockEnabled: true
+  channelLockEnabled: true,
+  referralRewardSeconds: 300 // 5 minutes default free watch time per referral
 };
 
 let cachedSettings = null;
@@ -110,7 +111,9 @@ async function saveOrUpdateUser(user) {
       // Default 180s (3 minutes) free watch time gift for new users
       watchTimeSeconds: existing?.watchTimeSeconds !== undefined ? existing.watchTimeSeconds : 180,
       savedVideos: existing?.savedVideos || [],
-      adPacksProgress: existing?.adPacksProgress || {}
+      adPacksProgress: existing?.adPacksProgress || {},
+      referredBy: existing?.referredBy || null,
+      referralCount: existing?.referralCount !== undefined ? existing.referralCount : 0
     };
 
     await axios.put(`${DB_URL}/users/${userId}.json`, payload, { timeout: 5000 });
@@ -118,6 +121,75 @@ async function saveOrUpdateUser(user) {
   } catch (err) {
     console.warn(`[Firebase DB] Error saving user ${userId}:`, err.message);
     return null;
+  }
+}
+
+/**
+ * Process referral: credit both referrer and new user if eligible
+ */
+async function processReferral(newUserId, referrerId, botInstance = null) {
+  if (!newUserId || !referrerId) return { success: false, reason: 'missing_ids' };
+  const uid = String(newUserId);
+  const refId = String(referrerId);
+  if (uid === refId) return { success: false, reason: 'self_referral' };
+
+  try {
+    const newUser = await getUserData(uid);
+    // If user already was referred, skip duplicate
+    if (newUser && newUser.referredBy) {
+      return { success: false, reason: 'already_referred' };
+    }
+
+    const referrer = await getUserData(refId);
+    if (!referrer) {
+      return { success: false, reason: 'referrer_not_found' };
+    }
+
+    const settings = await getBotSettings();
+    const rewardSec = Number(settings.referralRewardSeconds) || 300; // 5 min default
+
+    // Update new user: save referredBy and bonus time
+    const newUserCurrentTime = newUser?.watchTimeSeconds !== undefined ? newUser.watchTimeSeconds : 180;
+    await axios.patch(`${DB_URL}/users/${uid}.json`, {
+      referredBy: refId,
+      watchTimeSeconds: newUserCurrentTime + rewardSec,
+      lastActive: Date.now()
+    }, { timeout: 5000 });
+
+    // Update referrer: add bonus time and increment referral count
+    const refCurrentTime = referrer?.watchTimeSeconds !== undefined ? referrer.watchTimeSeconds : 180;
+    const refCount = (Number(referrer.referralCount) || 0) + 1;
+    await axios.patch(`${DB_URL}/users/${refId}.json`, {
+      watchTimeSeconds: refCurrentTime + rewardSec,
+      referralCount: refCount,
+      lastActive: Date.now()
+    }, { timeout: 5000 });
+
+    // Invalidate users cache so admin sees updated counts
+    cachedUsers = null;
+
+    // Send Telegram notification to referrer
+    if (botInstance) {
+      try {
+        const rewardMin = Math.round(rewardSec / 60);
+        await botInstance.sendMessage(
+          refId,
+          `🎉 <b>Naya Friend Join Hua!</b>\n\nAapke invite link se ek dost ne Landy TV join kiya hai! 🍿\n\nAapko mil gaye hain <b>+${rewardMin} Minutes Free Watch Time</b>! 🔥\nTotal Friends Invited: <b>${refCount}</b>`,
+          { parse_mode: 'HTML' }
+        );
+      } catch (e) {
+        console.warn(`[Referral Notification] Message to ${refId} failed:`, e.message);
+      }
+    }
+
+    return {
+      success: true,
+      rewardSeconds: rewardSec,
+      refCount
+    };
+  } catch (err) {
+    console.error('[Process Referral Error]:', err.message);
+    return { success: false, error: err.message };
   }
 }
 
@@ -314,7 +386,8 @@ module.exports = {
   isVideoAlreadyPosted,
   markVideoPosted,
   getAllUsers,
-  markUserBotBlocked
+  markUserBotBlocked,
+  processReferral
 };
 
 

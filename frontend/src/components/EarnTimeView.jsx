@@ -25,6 +25,39 @@ export default function EarnTimeView({
   const [loadingMessage, setLoadingMessage] = useState('');
   const [celebration, setCelebration] = useState(null);
   const [errorToast, setErrorToast] = useState(null);
+  const [copiedLink, setCopiedLink] = useState(false);
+  const [referralCount, setReferralCount] = useState(0);
+
+  const botUsername = 'landytv_bot';
+  const referralLink = `https://t.me/${botUsername}?start=ref_${userId}`;
+
+  useEffect(() => {
+    if (userId && userId !== 'guest_user') {
+      fetch(`/api/user/data?userId=${userId}`)
+        .then(r => r.json())
+        .then(d => {
+          if (d?.data?.referralCount !== undefined) {
+            setReferralCount(d.data.referralCount);
+          }
+        }).catch(() => {});
+    }
+  }, [userId]);
+
+  const handleShareReferral = () => {
+    const text = encodeURIComponent('🔥 Dekho HD Videos Landy TV par bilkul Free! Join karke 5 Minute Free Watch Time pao 🍿👇');
+    const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${text}`;
+    if (window.Telegram?.WebApp?.openTelegramLink) {
+      window.Telegram.WebApp.openTelegramLink(shareUrl);
+    } else {
+      window.open(shareUrl, '_blank');
+    }
+  };
+
+  const handleCopyReferral = () => {
+    navigator.clipboard?.writeText(referralLink);
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 2500);
+  };
 
   // Format seconds to mm:ss or hr:min
   const formatTime = (secs) => {
@@ -246,7 +279,124 @@ export default function EarnTimeView({
         </div>
       </div>
 
-      {/* 2. INSTANT LIGHTNING QUICK BOOST (1 AD = 1 MINUTE) */}
+      {/* 2. VIRAL INVITE & EARN REFERRAL CARD */}
+      <div style={{
+        background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(0, 242, 254, 0.12))',
+        border: '1px solid rgba(16, 185, 129, 0.35)',
+        borderRadius: '20px',
+        padding: '18px 20px',
+        marginBottom: '16px',
+        boxShadow: '0 8px 24px rgba(0,0,0,0.3)'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '24px' }}>🚀</span>
+            <div>
+              <h3 style={{ fontSize: '0.98rem', fontWeight: 800, color: '#ffffff', margin: 0 }}>
+                Invite & Earn Watch Time
+              </h3>
+              <p style={{ fontSize: '0.74rem', color: '#a7f3d0', margin: 0 }}>
+                Har friend ke join karne par <b>+5 Min Free</b> payein!
+              </p>
+            </div>
+          </div>
+          <span style={{
+            background: 'rgba(16, 185, 129, 0.2)',
+            color: '#10b981',
+            border: '1px solid rgba(16, 185, 129, 0.4)',
+            padding: '3px 9px',
+            borderRadius: '12px',
+            fontSize: '0.7rem',
+            fontWeight: 800
+          }}>
+            +5m / Friend
+          </span>
+        </div>
+
+        {/* Referral Link Bar */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          background: 'rgba(0, 0, 0, 0.45)',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+          borderRadius: '12px',
+          padding: '8px 12px',
+          marginBottom: '12px'
+        }}>
+          <span style={{
+            fontSize: '0.75rem',
+            color: '#e2e8f0',
+            fontFamily: 'monospace',
+            flex: 1,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap'
+          }}>
+            {referralLink}
+          </span>
+          <button
+            type="button"
+            onClick={handleCopyReferral}
+            style={{
+              background: copiedLink ? '#10b981' : 'rgba(255, 255, 255, 0.12)',
+              border: 'none',
+              color: '#ffffff',
+              padding: '6px 12px',
+              borderRadius: '8px',
+              fontSize: '0.75rem',
+              fontWeight: 700,
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+              flex: 'none'
+            }}
+          >
+            {copiedLink ? '✓ Copied!' : 'Copy'}
+          </button>
+        </div>
+
+        {/* Share Button & Stats */}
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button
+            type="button"
+            onClick={handleShareReferral}
+            style={{
+              flex: 1,
+              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+              border: 'none',
+              color: '#ffffff',
+              padding: '11px 16px',
+              borderRadius: '12px',
+              fontSize: '0.86rem',
+              fontWeight: 800,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              boxShadow: '0 4px 14px rgba(16, 185, 129, 0.4)'
+            }}
+          >
+            <span>📲 Share to Telegram</span>
+          </button>
+
+          <div style={{
+            background: 'rgba(255, 255, 255, 0.05)',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            borderRadius: '12px',
+            padding: '6px 12px',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            alignItems: 'center'
+          }}>
+            <span style={{ fontSize: '0.65rem', color: '#94a3b8' }}>Friends</span>
+            <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#10b981' }}>{referralCount}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* 3. INSTANT LIGHTNING QUICK BOOST (1 AD = 1 MINUTE) */}
       <div className="earn-quick-card">
         <div className="earn-quick-left">
           <div className="earn-quick-icon">

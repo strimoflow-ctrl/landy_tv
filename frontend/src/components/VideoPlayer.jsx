@@ -4,6 +4,14 @@ import { fetchVideoSource, fetchRelatedVideos } from '../utils/api';
 import { isVideoSaved, toggleSaveVideo, addToWatchHistory } from '../utils/storage';
 import { showRewardedAd } from '../utils/monetag';
 
+const EMOJI_LIST = [
+  { key: 'fire', emoji: '🔥', label: 'Hot' },
+  { key: 'drip', emoji: '💦', label: 'Juicy' },
+  { key: 'heart', emoji: '❤️', label: 'Love' },
+  { key: 'sexy', emoji: '😍', label: 'Sexy' },
+  { key: 'shock', emoji: '⚡', label: 'Shock' }
+];
+
 export default function VideoPlayer({ 
   video, 
   onClose, 
@@ -27,6 +35,47 @@ export default function VideoPlayer({
   const [toast, setToast] = useState(null);
   const [showTimeOutModal, setShowTimeOutModal] = useState(false);
   const [adLoading, setAdLoading] = useState(false);
+
+  // Interactive Emoji Reactions (Client-side animated)
+  const [reactions, setReactions] = useState(() => {
+    try {
+      const saved = localStorage.getItem(`rx_${video.url}`);
+      return saved ? JSON.parse(saved) : { fire: 42, drip: 88, heart: 29, sexy: 64, shock: 19 };
+    } catch (e) {
+      return { fire: 42, drip: 88, heart: 29, sexy: 64, shock: 19 };
+    }
+  });
+  const [activeReaction, setActiveReaction] = useState(null);
+  const [floatingEmojis, setFloatingEmojis] = useState([]);
+
+  const handleReact = (e, key, emoji) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    if (window.Telegram?.WebApp?.HapticFeedback) {
+      try { window.Telegram.WebApp.HapticFeedback.impactOccurred('medium'); } catch (err) {}
+    }
+    setReactions(prev => {
+      const updated = { ...prev, [key]: (prev[key] || 0) + 1 };
+      try { localStorage.setItem(`rx_${video.url}`, JSON.stringify(updated)); } catch (err) {}
+      return updated;
+    });
+    setActiveReaction(key);
+    setTimeout(() => setActiveReaction(null), 300);
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    const newEmoji = {
+      id: Date.now() + Math.random(),
+      emoji,
+      x: rect.left + rect.width / 2 - 12,
+      y: rect.top - 10
+    };
+    setFloatingEmojis(prev => [...prev.slice(-6), newEmoji]);
+    setTimeout(() => {
+      setFloatingEmojis(prev => prev.filter(item => item.id !== newEmoji.id));
+    }, 1000);
+  };
 
   const videoRef = useRef(null);
   const lastTapRef = useRef(0);
@@ -488,6 +537,28 @@ export default function VideoPlayer({
                 <span>Share</span>
               </button>
             </div>
+
+            {/* Interactive Emoji Reactions Bar */}
+            <div className="player-reactions-wrapper">
+              <div className="reactions-header">
+                <span>🔥 Video Reactions</span>
+                <span className="reactions-hint">Tap to burst emojis!</span>
+              </div>
+              <div className="reactions-bar">
+                {EMOJI_LIST.map(({ key, emoji, label }) => (
+                  <button
+                    key={key}
+                    type="button"
+                    className={`reaction-pill ${activeReaction === key ? 'reaction-pop' : ''}`}
+                    onClick={(e) => handleReact(e, key, emoji)}
+                    title={label}
+                  >
+                    <span>{emoji}</span>
+                    <span style={{ fontSize: '0.74rem', opacity: 0.9 }}>{reactions[key] || 0}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
 
@@ -711,6 +782,17 @@ export default function VideoPlayer({
           {toast}
         </div>
       )}
+
+      {/* Floating Emoji Bursts */}
+      {floatingEmojis.map(item => (
+        <span 
+          key={item.id} 
+          className="floating-emoji-item" 
+          style={{ left: `${item.x}px`, top: `${item.y}px` }}
+        >
+          {item.emoji}
+        </span>
+      ))}
     </div>
   );
 }

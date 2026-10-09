@@ -676,6 +676,80 @@ body {
   100% { opacity: 0; transform: translateY(-50%) scale(0.9); }
 }
 
+/* Interactive Emoji Reactions */
+.player-reactions-wrapper {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+.reactions-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: 0.72rem;
+  color: var(--text-dim);
+}
+.reactions-hint {
+  font-size: 0.68rem;
+  color: var(--accent-cyan);
+}
+.reactions-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-bottom: 2px;
+}
+.reactions-bar::-webkit-scrollbar { display: none; }
+.reaction-pill {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  padding: 6px 12px;
+  cursor: pointer;
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 700;
+  transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  user-select: none;
+  flex: none;
+}
+.reaction-pill:active {
+  transform: scale(0.92);
+}
+.reaction-pop {
+  transform: scale(1.25) !important;
+  background: rgba(0, 242, 254, 0.18) !important;
+  border-color: var(--accent-cyan) !important;
+  box-shadow: 0 0 15px rgba(0, 242, 254, 0.4);
+}
+.floating-emoji-item {
+  position: fixed;
+  pointer-events: none;
+  font-size: 24px;
+  z-index: 100000;
+  animation: floatUpBurst 1s ease-out forwards;
+}
+@keyframes floatUpBurst {
+  0% {
+    opacity: 1;
+    transform: translateY(0) scale(0.8) rotate(0deg);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-40px) scale(1.4) rotate(-15deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-90px) scale(1) rotate(15deg);
+  }
+}
+
 /* Independent Scrollable Suggestions Queue (ONLY this area scrolls) */
 .player-suggested-scrollable {
   flex: 1 1 auto;
