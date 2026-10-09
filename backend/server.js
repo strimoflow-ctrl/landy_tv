@@ -969,10 +969,10 @@ app.get('/api/check-subscription', async (req, res) => {
 
 // Explicit admin panel handler
 app.get(['/admin', '/admin.html'], (req, res) => {
-    const adminPathDist = path.join(distPath, 'admin.html');
-    if (fs.existsSync(adminPathDist)) return res.sendFile(adminPathDist);
     const adminRoot = path.join(__dirname, '../admin.html');
     if (fs.existsSync(adminRoot)) return res.sendFile(adminRoot);
+    const adminPathDist = path.join(distPath, 'admin.html');
+    if (fs.existsSync(adminPathDist)) return res.sendFile(adminPathDist);
     res.status(404).send('Admin panel not found');
 });
 

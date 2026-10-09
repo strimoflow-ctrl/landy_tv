@@ -1318,8 +1318,19 @@
         </div>
 
         <div class="input-group">
-          <label class="input-label">Railway WebApp URL</label>
-          <input type="text" class="input-control" id="cfgWebAppUrl" value="https://landytv-production-7d26.up.railway.app">
+          <label class="input-label" style="display: flex; justify-content: space-between; align-items: center;">
+            <span>🌐 Server & WebApp URL (Render / Railway)</span>
+            <span style="font-size: 0.72rem; color: var(--accent-cyan); font-weight: 700;">Live Stats & API Host</span>
+          </label>
+          <div style="display: flex; gap: 8px;">
+            <input type="text" class="input-control" id="cfgWebAppUrl" value="https://landy-tv.onrender.com" oninput="saveServerUrl(this.value)">
+            <button class="btn btn-secondary btn-sm" type="button" onclick="testServerConnection()" style="white-space: nowrap; padding: 0 16px;">
+              🔗 Test & Connect
+            </button>
+          </div>
+          <span style="font-size: 0.72rem; color: var(--text-dim); margin-top: 4px;">
+            Enables Live Viewers tracking when opening admin.html locally as a file or hosted online.
+          </span>
         </div>
 
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
@@ -1511,12 +1522,66 @@
       setInterval(() => loadAllData(false), 30000);
     }
 
+    // Dynamic Server Base URL Resolver (Supports file:///, localhost, and online host like Render)
+    function getServerBaseUrl() {
+      // 1. Saved custom server URL in localStorage
+      let saved = localStorage.getItem('landy_admin_server_url');
+      if (saved && saved.startsWith('http')) return saved.replace(/\/$/, '');
+
+      // 2. Input value from #cfgWebAppUrl
+      const inputEl = document.getElementById('cfgWebAppUrl');
+      if (inputEl && inputEl.value && inputEl.value.trim().startsWith('http')) {
+        const val = inputEl.value.trim().replace(/\/$/, '');
+        localStorage.setItem('landy_admin_server_url', val);
+        return val;
+      }
+
+      // 3. Saved in state from Firebase
+      if (state.botSettings?.webAppUrl && state.botSettings.webAppUrl.startsWith('http')) {
+        return state.botSettings.webAppUrl.replace(/\/$/, '');
+      }
+
+      // 4. If loaded via http/https
+      if (typeof window !== 'undefined' && window.location.protocol.startsWith('http')) {
+        return window.location.origin;
+      }
+
+      // 5. Default fallback for file:/// protocol
+      return 'https://landy-tv.onrender.com';
+    }
+
+    function saveServerUrl(val) {
+      if (val && val.trim().startsWith('http')) {
+        const clean = val.trim().replace(/\/$/, '');
+        localStorage.setItem('landy_admin_server_url', clean);
+        fetchLiveStats();
+      }
+    }
+
+    async function testServerConnection() {
+      const url = getServerBaseUrl();
+      showToast(`Testing connection to ${url}...`, 'info');
+      try {
+        const res = await fetch(`${url}/ping`, { method: 'GET', cache: 'no-cache' });
+        if (res.ok) {
+          showToast(`✅ Successfully connected to ${url}!`, 'success');
+          fetchLiveStats();
+          loadAllData(false);
+        } else {
+          showToast(`⚠️ Server responded with status: ${res.status}`, 'error');
+        }
+      } catch (err) {
+        showToast(`❌ Connection failed: ${err.message}. Check Render deployment.`, 'error');
+      }
+    }
+
     // ==========================================
     // LIVE VIEWERS (Zero Firebase load)
     // ==========================================
     async function fetchLiveStats() {
       try {
-        const res = await fetch('/api/admin/live-stats');
+        const baseUrl = getServerBaseUrl();
+        const res = await fetch(`${baseUrl}/api/admin/live-stats`);
         if (res.ok) {
           const data = await res.json();
           if (data && data.success) {
@@ -1540,7 +1605,7 @@
           }
         }
       } catch (e) {
-        // Fallback gracefully if running on external static host
+        // Fallback gracefully
       }
     }
 
@@ -1606,7 +1671,8 @@
         // Try Server API first (uses server memory cache, saving Firebase bandwidth!)
         let serverLoaded = false;
         try {
-          const sRes = await fetch('/api/admin/users');
+          const baseUrl = getServerBaseUrl();
+          const sRes = await fetch(`${baseUrl}/api/admin/users`);
           if (sRes.ok) {
             const sData = await sRes.json();
             if (sData && sData.success && Array.isArray(sData.users)) {
@@ -1926,7 +1992,8 @@
       showToast('Starting stealth scan of Telegram users...', 'info');
 
       try {
-        const res = await fetch('/api/admin/scan-blocked-users', { method: 'POST' });
+        const baseUrl = getServerBaseUrl();
+        const res = await fetch(`${baseUrl}/api/admin/scan-blocked-users`, { method: 'POST' });
         const data = await res.json();
         if (data && data.success) {
           showToast(`Scan complete: ${data.totalScanned} checked, ${data.newlyBlockedCount} newly detected blocked!`, 'success');
@@ -2083,7 +2150,8 @@
 
     async function toggleBlockUser(userId, newBlockedState) {
       try {
-        await fetch('/api/admin/toggle-block', {
+        const baseUrl = getServerBaseUrl();
+        await fetch(`${baseUrl}/api/admin/toggle-block`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ userId, isBlocked: Boolean(newBlockedState) })
@@ -2639,7 +2707,8 @@
               user.botBlocked = true;
               blockedCount++;
               // Mark user bot blocked via backend
-              fetch('/api/admin/toggle-block', {
+              const baseUrl = getServerBaseUrl();
+              fetch(`${baseUrl}/api/admin/toggle-block`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ userId: user.id, isBlocked: false, botBlocked: true })
@@ -2676,7 +2745,8 @@
       document.getElementById('cfgDefaultTime').value = state.botSettings.defaultWatchTimeSeconds || 180;
       document.getElementById('cfgAdReward').value = state.botSettings.adRewardSeconds || 60;
       document.getElementById('cfgReferralReward').value = state.botSettings.referralRewardSeconds || 300;
-      document.getElementById('cfgWebAppUrl').value = state.botSettings.webAppUrl || 'https://landytv-production-7d26.up.railway.app';
+      const savedServerUrl = localStorage.getItem('landy_admin_server_url');
+      document.getElementById('cfgWebAppUrl').value = savedServerUrl || state.botSettings.webAppUrl || 'https://landy-tv.onrender.com';
     }
 
     async function saveSystemSettings() {
@@ -2691,6 +2761,9 @@
       const adRewardSeconds = parseInt(document.getElementById('cfgAdReward').value) || 60;
       const referralRewardSeconds = parseInt(document.getElementById('cfgReferralReward').value) || 300;
       const webAppUrl = document.getElementById('cfgWebAppUrl').value.trim();
+      if (webAppUrl && webAppUrl.startsWith('http')) {
+        localStorage.setItem('landy_admin_server_url', webAppUrl.replace(/\/$/, ''));
+      }
 
       try {
         await fetch(`${DB_URL}/bot_settings.json`, {
