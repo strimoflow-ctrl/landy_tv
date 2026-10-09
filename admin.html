@@ -1715,6 +1715,7 @@
         renderUsers();
         renderPosterSettings();
         renderSystemSettings();
+        updateAudienceBadge();
 
         if (showToastNotice) {
           showToast(serverLoaded ? 'Data refreshed via server cache!' : 'Data refreshed live from Firebase RTDB!', 'success');
@@ -2628,16 +2629,17 @@
       // Filter target users based on selected Audience
       let queue = [];
       const now = Date.now();
+      const excludeBlocked = document.getElementById('broadcastExcludeBlocked')?.checked ?? true;
 
       if (audienceFilter === 'custom') {
-        const customId = document.getElementById('broadcastCustomUserId').value.trim();
+        const customId = document.getElementById('broadcastCustomUserId')?.value.trim();
         if (!customId) {
           alert('Please enter the specific User ID in the field.');
           return;
         }
         queue = [{ id: customId }];
-        const excludeBlocked = document.getElementById('broadcastExcludeBlocked')?.checked ?? true;
-        queue = state.usersList.filter(u => {
+      } else {
+        queue = (state.usersList || []).filter(u => {
           if (!u || !u.id || u.isBlocked) return false;
           if (excludeBlocked && u.botBlocked) return false;
           if (audienceFilter === 'active24h') {
@@ -2791,7 +2793,14 @@
       document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
       const target = document.getElementById(tabId);
       if (target) target.classList.add('active');
-      event.currentTarget.classList.add('active');
+      if (window.event && window.event.currentTarget && window.event.currentTarget.classList) {
+        window.event.currentTarget.classList.add('active');
+      } else {
+        document.querySelectorAll('.tab-btn').forEach(b => {
+          if (b.getAttribute('onclick')?.includes(tabId)) b.classList.add('active');
+        });
+      }
+      if (tabId === 'broadcastTab') updateAudienceBadge();
     }
 
     function showToast(msg, type = 'info') {
