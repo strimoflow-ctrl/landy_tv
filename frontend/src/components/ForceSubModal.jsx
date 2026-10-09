@@ -1,9 +1,17 @@
 import React, { useState, useEffect } from 'react';
+import { getTelegramUser } from '../utils/telegram';
 
 export default function ForceSubModal({ unjoined = [], onVerifySuccess }) {
   const [verifying, setVerifying] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [channels, setChannels] = useState(unjoined);
+
+  // Sync channels if parent unjoined prop changes
+  useEffect(() => {
+    if (Array.isArray(unjoined)) {
+      setChannels(unjoined);
+    }
+  }, [unjoined]);
 
   // Lock background scrolling while modal is active
   useEffect(() => {
@@ -53,17 +61,22 @@ export default function ForceSubModal({ unjoined = [], onVerifySuccess }) {
     setErrorMsg('');
 
     try {
-      const tg = window.Telegram?.WebApp;
-      const userId = tg?.initDataUnsafe?.user?.id;
+      const user = getTelegramUser();
+      const userId = user?.id || window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
 
       const res = await fetch(`/api/check-subscription?userId=${userId || ''}`);
       const data = await res.json();
 
-      if (data.isSubscribed) {
+      if (data && (data.isSubscribed || !data.unjoined || data.unjoined.length === 0)) {
         if (onVerifySuccess) onVerifySuccess();
       } else {
-        setChannels(data.unjoined || []);
-        setErrorMsg(`⚠️ You still need to join ${data.unjoined?.length || 'the'} channel(s) below!`);
+        const remainingUnjoined = data.unjoined || [];
+        setChannels(remainingUnjoined);
+        if (remainingUnjoined.length === 0) {
+          if (onVerifySuccess) onVerifySuccess();
+        } else {
+          setErrorMsg(`⚠️ You still need to join ${remainingUnjoined.length} channel(s) below!`);
+        }
       }
     } catch (err) {
       setErrorMsg('Verification failed. Please check your internet connection.');

@@ -1,12 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Landy TV — Master Admin Control Hub</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap"
+    rel="stylesheet">
   <style>
     :root {
       --bg-base: #06080e;
@@ -40,7 +43,7 @@
 
     body {
       background-color: var(--bg-base);
-      background-image: 
+      background-image:
         radial-gradient(circle at 15% 15%, rgba(0, 242, 254, 0.05) 0%, transparent 40%),
         radial-gradient(circle at 85% 85%, rgba(255, 42, 95, 0.04) 0%, transparent 45%),
         radial-gradient(circle at 50% 50%, rgba(16, 21, 35, 0.5) 0%, transparent 100%);
@@ -132,8 +135,17 @@
     }
 
     @keyframes pulse {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.4; transform: scale(0.85); }
+
+      0%,
+      100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+
+      50% {
+        opacity: 0.4;
+        transform: scale(0.85);
+      }
     }
 
     /* Main Container */
@@ -157,7 +169,10 @@
       overflow-x: auto;
       scrollbar-width: none;
     }
-    .nav-tabs::-webkit-scrollbar { display: none; }
+
+    .nav-tabs::-webkit-scrollbar {
+      display: none;
+    }
 
     .tab-btn {
       display: inline-flex;
@@ -308,6 +323,7 @@
       color: #040812;
       box-shadow: 0 4px 16px rgba(0, 242, 254, 0.35);
     }
+
     .btn-primary:hover {
       box-shadow: 0 6px 22px rgba(0, 242, 254, 0.55);
       transform: translateY(-1px);
@@ -318,6 +334,7 @@
       color: #fff;
       box-shadow: 0 4px 16px rgba(255, 42, 95, 0.35);
     }
+
     .btn-danger:hover {
       box-shadow: 0 6px 22px rgba(255, 42, 95, 0.55);
       transform: translateY(-1px);
@@ -328,6 +345,7 @@
       color: #fff;
       border: 1px solid var(--border);
     }
+
     .btn-secondary:hover {
       background: rgba(255, 255, 255, 0.14);
       border-color: rgba(255, 255, 255, 0.2);
@@ -588,7 +606,10 @@
       cursor: pointer;
       line-height: 1;
     }
-    .modal-close:hover { color: #fff; }
+
+    .modal-close:hover {
+      color: #fff;
+    }
 
     /* Toast */
     .toast-container {
@@ -619,13 +640,31 @@
     }
 
     @keyframes slideInRight {
-      from { transform: translateX(100%); opacity: 0; }
-      to { transform: translateX(0); opacity: 1; }
+      from {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
     }
 
-    .toast-success { border-color: rgba(16, 185, 129, 0.4); color: #34d399; }
-    .toast-error { border-color: rgba(255, 42, 95, 0.4); color: #fb7185; }
-    .toast-info { border-color: rgba(0, 242, 254, 0.4); color: #38bdf8; }
+    .toast-success {
+      border-color: rgba(16, 185, 129, 0.4);
+      color: #34d399;
+    }
+
+    .toast-error {
+      border-color: rgba(255, 42, 95, 0.4);
+      color: #fb7185;
+    }
+
+    .toast-info {
+      border-color: rgba(0, 242, 254, 0.4);
+      color: #38bdf8;
+    }
 
     /* Custom Progress Bar for Broadcast */
     .progress-track {
@@ -648,6 +687,7 @@
     .tab-content {
       display: none;
     }
+
     .tab-content.active {
       display: block;
     }
@@ -665,6 +705,7 @@
       gap: 24px;
       align-items: start;
     }
+
     @media (max-width: 960px) {
       .broadcast-grid {
         grid-template-columns: 1fr;
@@ -726,7 +767,7 @@
       border: 1px solid #1e2838;
       border-radius: var(--radius-lg);
       padding: 18px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
       position: sticky;
       top: 90px;
     }
@@ -737,7 +778,7 @@
       gap: 10px;
       margin-bottom: 14px;
       padding-bottom: 10px;
-      border-bottom: 1px solid rgba(255,255,255,0.06);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
     }
 
     .tg-bot-avatar {
@@ -784,7 +825,7 @@
       position: relative;
       word-break: break-word;
       white-space: pre-wrap;
-      border: 1px solid rgba(255,255,255,0.06);
+      border: 1px solid rgba(255, 255, 255, 0.06);
     }
 
     .tg-time {
@@ -837,16 +878,19 @@
       transition: all 0.2s ease;
       user-select: none;
     }
+
     .filter-pill:hover {
       background: rgba(255, 255, 255, 0.08);
       border-color: rgba(255, 255, 255, 0.2);
     }
+
     .filter-pill.active {
       background: rgba(0, 242, 254, 0.12);
       border-color: var(--accent-cyan);
       color: #fff;
       box-shadow: 0 0 14px rgba(0, 242, 254, 0.18);
     }
+
     .badge-live {
       background: rgba(0, 242, 254, 0.16) !important;
       color: var(--accent-cyan) !important;
@@ -855,21 +899,25 @@
       align-items: center;
       gap: 5px;
     }
+
     .badge-rose {
       background: rgba(255, 42, 95, 0.16) !important;
       color: #ff2a5f !important;
       border: 1px solid rgba(255, 42, 95, 0.35) !important;
     }
+
     .badge-gray {
       background: rgba(255, 255, 255, 0.05) !important;
       color: var(--text-dim) !important;
       border: 1px solid rgba(255, 255, 255, 0.08) !important;
     }
+
     .badge-success {
       background: rgba(16, 185, 129, 0.16) !important;
       color: var(--accent-green) !important;
       border: 1px solid rgba(16, 185, 129, 0.35) !important;
     }
+
     .badge-danger {
       background: rgba(239, 68, 68, 0.18) !important;
       color: #ef4444 !important;
@@ -877,6 +925,7 @@
     }
   </style>
 </head>
+
 <body>
 
   <!-- Top Header -->
@@ -890,11 +939,13 @@
     </div>
 
     <div class="header-actions">
-      <div class="status-pill" id="fbStatusPill" style="cursor: pointer;" title="Click to view/change Firebase URL" onclick="switchFirebaseDbPrompt()">
+      <div class="status-pill" id="fbStatusPill" style="cursor: pointer;" title="Click to view/change Firebase URL"
+        onclick="switchFirebaseDbPrompt()">
         <span class="status-dot"></span>
         <span id="fbStatusText">Connected to Firebase</span>
       </div>
-      <button class="btn btn-secondary btn-sm" onclick="switchFirebaseDbPrompt()" title="Switch or Update Firebase Database URL">
+      <button class="btn btn-secondary btn-sm" onclick="switchFirebaseDbPrompt()"
+        title="Switch or Update Firebase Database URL">
         ⚙️ Change DB URL
       </button>
       <button class="btn btn-secondary btn-sm" onclick="loadAllData(true)">
@@ -909,7 +960,8 @@
     <!-- Metrics Cards -->
     <section class="metrics-grid">
       <!-- 1. Live Viewers Right Now (Clickable to view active sessions) -->
-      <div class="metric-card" style="--card-color: #00f2fe; cursor: pointer;" onclick="openLiveViewersModal()" title="Click to view real-time live viewers list">
+      <div class="metric-card" style="--card-color: #00f2fe; cursor: pointer;" onclick="openLiveViewersModal()"
+        title="Click to view real-time live viewers list">
         <div class="metric-header">
           <span class="metric-label" style="display: flex; align-items: center; gap: 6px;">
             <span class="status-dot" style="background: #00f2fe; box-shadow: 0 0 8px #00f2fe;"></span>
@@ -922,7 +974,8 @@
       </div>
 
       <!-- 2. Active Users 24h -->
-      <div class="metric-card" style="--card-color: var(--accent-green); cursor: pointer;" onclick="filterUsersByTab('active24h')" title="Filter users active in past 24 hours">
+      <div class="metric-card" style="--card-color: var(--accent-green); cursor: pointer;"
+        onclick="filterUsersByTab('active24h')" title="Filter users active in past 24 hours">
         <div class="metric-header">
           <span class="metric-label">Active Users (24h)</span>
           <span class="metric-icon">⚡</span>
@@ -932,7 +985,8 @@
       </div>
 
       <!-- 3. Total Users -->
-      <div class="metric-card" style="--card-color: var(--accent-cyan); cursor: pointer;" onclick="filterUsersByTab('all')" title="View all users">
+      <div class="metric-card" style="--card-color: var(--accent-cyan); cursor: pointer;"
+        onclick="filterUsersByTab('all')" title="View all users">
         <div class="metric-header">
           <span class="metric-label">Total Users</span>
           <span class="metric-icon">👥</span>
@@ -942,7 +996,8 @@
       </div>
 
       <!-- 4. Bot Blocked / Deleted Users -->
-      <div class="metric-card" style="--card-color: var(--accent-pink); cursor: pointer;" onclick="filterUsersByTab('botBlocked')" title="View users who blocked or deleted bot">
+      <div class="metric-card" style="--card-color: var(--accent-pink); cursor: pointer;"
+        onclick="filterUsersByTab('botBlocked')" title="View users who blocked or deleted bot">
         <div class="metric-header">
           <span class="metric-label">Bot Blocked / Deleted</span>
           <span class="metric-icon">🚫</span>
@@ -1023,15 +1078,18 @@
         <div class="panel-header" style="flex-wrap: wrap; gap: 16px;">
           <div>
             <h2 class="panel-title">👥 Registered Users Directory</h2>
-            <p class="panel-subtitle">Filter by 24h Active, Live Now, or Blocked/Deleted accounts with zero Firebase load</p>
+            <p class="panel-subtitle">Filter by 24h Active, Live Now, or Blocked/Deleted accounts with zero Firebase
+              load</p>
           </div>
 
           <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
             <div class="search-bar">
               <span>🔍</span>
-              <input type="text" id="userSearchInput" placeholder="Search by ID, Name or @Username..." oninput="filterUsers()">
+              <input type="text" id="userSearchInput" placeholder="Search by ID, Name or @Username..."
+                oninput="filterUsers()">
             </div>
-            <button class="btn btn-secondary btn-sm" onclick="scanBlockedUsers()" id="btnScanBlocked" title="Stealth scan to detect users who deleted or blocked bot">
+            <button class="btn btn-secondary btn-sm" onclick="scanBlockedUsers()" id="btnScanBlocked"
+              title="Stealth scan to detect users who deleted or blocked bot">
               🔍 Scan Blocked Users
             </button>
             <button class="btn btn-secondary btn-sm" onclick="exportUsersCSV()">
@@ -1041,20 +1099,25 @@
         </div>
 
         <!-- Filter Sub-Tabs -->
-        <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border);">
+        <div
+          style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border);">
           <button class="filter-pill active" id="tabFilterAll" onclick="setUserFilter('all')">
             All Users (<span id="cntAll">--</span>)
           </button>
-          <button class="filter-pill" id="tabFilterActive24h" onclick="setUserFilter('active24h')" style="color: var(--accent-green);">
+          <button class="filter-pill" id="tabFilterActive24h" onclick="setUserFilter('active24h')"
+            style="color: var(--accent-green);">
             ⚡ Active (24h) (<span id="cntActive24h">--</span>)
           </button>
-          <button class="filter-pill" id="tabFilterLive" onclick="setUserFilter('live')" style="color: var(--accent-cyan);">
+          <button class="filter-pill" id="tabFilterLive" onclick="setUserFilter('live')"
+            style="color: var(--accent-cyan);">
             🟢 Live Now (<span id="cntLive">--</span>)
           </button>
-          <button class="filter-pill" id="tabFilterBlocked" onclick="setUserFilter('botBlocked')" style="color: var(--accent-pink);">
+          <button class="filter-pill" id="tabFilterBlocked" onclick="setUserFilter('botBlocked')"
+            style="color: var(--accent-pink);">
             🚫 Bot Blocked/Deleted (<span id="cntBlocked">--</span>)
           </button>
-          <button class="filter-pill" id="tabFilterInactive" onclick="setUserFilter('inactive')" style="color: var(--text-dim);">
+          <button class="filter-pill" id="tabFilterInactive" onclick="setUserFilter('inactive')"
+            style="color: var(--text-dim);">
             💤 Inactive (>24h) (<span id="cntInactive">--</span>)
           </button>
           <button class="filter-pill" id="tabFilterBanned" onclick="setUserFilter('banned')" style="color: #ef4444;">
@@ -1091,14 +1154,15 @@
         <div class="panel-header">
           <div>
             <h2 class="panel-title">📣 Telegram Push Announcement Broadcast</h2>
-            <p class="panel-subtitle">Compose formatted alerts with custom inline buttons, 1-click templates, and real-time Telegram preview</p>
+            <p class="panel-subtitle">Compose formatted alerts with custom inline buttons, 1-click templates, and
+              real-time Telegram preview</p>
           </div>
         </div>
 
         <div class="broadcast-grid">
           <!-- Left Column: Controls & Editor -->
           <div class="broadcast-editor-col">
-            
+
             <!-- Quick Clickable Templates -->
             <div style="margin-bottom: 12px;">
               <span class="input-label" style="display: block; margin-bottom: 8px;">🔥 1-Click Viral Templates:</span>
@@ -1114,13 +1178,16 @@
             </div>
 
             <div class="input-group">
-              <label class="input-label">Message Text (HTML format: &lt;b&gt;bold&lt;/b&gt;, &lt;i&gt;italic&lt;/i&gt;, emojis)</label>
-              <textarea class="input-control" id="broadcastText" rows="6" oninput="updateBroadcastPreview()" placeholder="Type your broadcast message here..."></textarea>
+              <label class="input-label">Message Text (HTML format: &lt;b&gt;bold&lt;/b&gt;, &lt;i&gt;italic&lt;/i&gt;,
+                emojis)</label>
+              <textarea class="input-control" id="broadcastText" rows="6" oninput="updateBroadcastPreview()"
+                placeholder="Type your broadcast message here..."></textarea>
             </div>
 
             <div class="input-group">
               <label class="input-label">Optional Photo / Banner URL (Leave empty for text-only message)</label>
-              <input type="text" class="input-control" id="broadcastPhotoUrl" placeholder="https://example.com/banner.jpg" oninput="updateBroadcastPreview()">
+              <input type="text" class="input-control" id="broadcastPhotoUrl"
+                placeholder="https://example.com/banner.jpg" oninput="updateBroadcastPreview()">
             </div>
 
             <!-- Dynamic Buttons Section -->
@@ -1128,7 +1195,8 @@
               <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
                 <div>
                   <span class="input-label" style="font-size: 0.88rem; color: #fff;">Inline Action Buttons</span>
-                  <p style="font-size: 0.72rem; color: var(--text-dim);">Buttons can be deleted to send text-only, or added as needed</p>
+                  <p style="font-size: 0.72rem; color: var(--text-dim);">Buttons can be deleted to send text-only, or
+                    added as needed</p>
                 </div>
                 <button class="btn btn-secondary btn-sm" type="button" onclick="addBroadcastButton()">
                   ➕ Add Button
@@ -1145,7 +1213,8 @@
               <div class="input-group" style="margin-bottom: 8px;">
                 <label class="input-label" style="display: flex; justify-content: space-between; align-items: center;">
                   <span>🎯 Target Audience (Select who receives broadcast)</span>
-                  <span id="targetAudienceCountBadge" style="color: var(--accent-cyan); font-weight: 700; font-size: 0.8rem;">
+                  <span id="targetAudienceCountBadge"
+                    style="color: var(--accent-cyan); font-weight: 700; font-size: 0.8rem;">
                     Loading users...
                   </span>
                 </label>
@@ -1155,38 +1224,49 @@
                   <option value="active7d">📅 Active Users in Past 7 Days</option>
                   <option value="custom">🎯 Specific User ID Only (Single Target)</option>
                 </select>
-                <label style="display: flex; align-items: center; gap: 8px; font-size: 0.78rem; color: #a0aec0; cursor: pointer; margin-top: 8px;">
-                  <input type="checkbox" id="broadcastExcludeBlocked" checked onchange="updateAudienceBadge()" style="accent-color: var(--accent-cyan); width: 16px; height: 16px;">
-                  <span>🚫 <b>Skip Bot Blocked / Deleted Users</b> (Prevents failed sends & keeps Telegram limits safe)</span>
+                <label
+                  style="display: flex; align-items: center; gap: 8px; font-size: 0.78rem; color: #a0aec0; cursor: pointer; margin-top: 8px;">
+                  <input type="checkbox" id="broadcastExcludeBlocked" checked onchange="updateAudienceBadge()"
+                    style="accent-color: var(--accent-cyan); width: 16px; height: 16px;">
+                  <span>🚫 <b>Skip Bot Blocked / Deleted Users</b> (Prevents failed sends & keeps Telegram limits
+                    safe)</span>
                 </label>
               </div>
 
               <!-- Only shown if "Specific User ID Only" is selected -->
               <div class="input-group" id="customUserTargetGroup" style="display: none; margin-bottom: 8px;">
                 <label class="input-label">Target Specific User ID</label>
-                <input type="text" class="input-control" id="broadcastCustomUserId" placeholder="e.g. 6867016279" oninput="updateAudienceBadge()">
+                <input type="text" class="input-control" id="broadcastCustomUserId" placeholder="e.g. 6867016279"
+                  oninput="updateAudienceBadge()">
               </div>
             </div>
 
             <!-- Test on My ID Dedicated Box -->
-            <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; margin-bottom: 16px;">
-              <div style="font-size: 0.82rem; font-weight: 700; color: #fff; margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between;">
+            <div
+              style="background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; margin-bottom: 16px;">
+              <div
+                style="font-size: 0.82rem; font-weight: 700; color: #fff; margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between;">
                 <span>🧪 Test On Your Own Telegram (Does NOT affect All Users)</span>
                 <span style="font-size: 0.72rem; color: var(--accent-green); font-weight: 600;">Safe Preview Mode</span>
               </div>
               <div style="display: flex; gap: 8px;">
-                <input type="text" class="input-control" id="broadcastTestChatId" placeholder="Enter your Telegram Chat ID (e.g. 6867016279)" style="flex: 1; font-size: 0.82rem;" oninput="saveTestId(this.value)">
-                <button class="btn btn-secondary btn-sm" type="button" onclick="testSendToMe()" style="white-space: nowrap; padding: 0 16px;">
+                <input type="text" class="input-control" id="broadcastTestChatId"
+                  placeholder="Enter your Telegram Chat ID (e.g. 6867016279)" style="flex: 1; font-size: 0.82rem;"
+                  oninput="saveTestId(this.value)">
+                <button class="btn btn-secondary btn-sm" type="button" onclick="testSendToMe()"
+                  style="white-space: nowrap; padding: 0 16px;">
                   📲 Send Test Now
                 </button>
               </div>
               <p style="font-size: 0.7rem; color: var(--text-dim); margin: 6px 0 0 0;">
-                Test message only goes to your chat ID above. It will NEVER stop or restrict your "Send Broadcast" to All Users!
+                Test message only goes to your chat ID above. It will NEVER stop or restrict your "Send Broadcast" to
+                All Users!
               </p>
             </div>
 
             <!-- Broadcast Progress Container -->
-            <div id="broadcastProgressBox" style="display: none; margin: 16px 0; background: rgba(0,0,0,0.5); padding: 16px; border-radius: var(--radius-md); border: 1px solid var(--border);">
+            <div id="broadcastProgressBox"
+              style="display: none; margin: 16px 0; background: rgba(0,0,0,0.5); padding: 16px; border-radius: var(--radius-md); border: 1px solid var(--border);">
               <div style="display: flex; justify-content: space-between; font-size: 0.82rem; font-weight: 700;">
                 <span id="broadcastProgressStatus">Broadcasting in progress...</span>
                 <span id="broadcastProgressStats">0 / 0</span>
@@ -1194,14 +1274,17 @@
               <div class="progress-track">
                 <div class="progress-fill" id="broadcastProgressBar"></div>
               </div>
-              <div style="font-size: 0.75rem; color: var(--text-dim);" id="broadcastProgressDetail">Starting queue...</div>
+              <div style="font-size: 0.75rem; color: var(--text-dim);" id="broadcastProgressDetail">Starting queue...
+              </div>
             </div>
 
             <div style="display: flex; gap: 12px; margin-top: 18px;">
-              <button class="btn btn-primary" id="btnStartBroadcast" onclick="startBroadcast()" style="flex: 1; justify-content: center; font-size: 0.95rem; padding: 12px 20px;">
+              <button class="btn btn-primary" id="btnStartBroadcast" onclick="startBroadcast()"
+                style="flex: 1; justify-content: center; font-size: 0.95rem; padding: 12px 20px;">
                 🚀 Send Broadcast to Audience
               </button>
-              <button class="btn btn-danger btn-sm" id="btnStopBroadcast" style="display: none;" onclick="stopBroadcast()">
+              <button class="btn btn-danger btn-sm" id="btnStopBroadcast" style="display: none;"
+                onclick="stopBroadcast()">
                 ⏹ Stop Broadcast
               </button>
             </div>
@@ -1278,7 +1361,9 @@
                 </tr>
               </thead>
               <tbody id="postedVideosTableBody">
-                <tr><td colspan="3" class="empty-state">Loading posted history...</td></tr>
+                <tr>
+                  <td colspan="3" class="empty-state">Loading posted history...</td>
+                </tr>
               </tbody>
             </table>
           </div>
@@ -1299,22 +1384,27 @@
         <div class="input-group">
           <label class="input-label" style="display: flex; justify-content: space-between; align-items: center;">
             <span>🔥 Firebase Realtime Database URL</span>
-            <span style="font-size: 0.72rem; color: var(--accent-cyan); font-weight: 600;">Saved locally in your browser</span>
+            <span style="font-size: 0.72rem; color: var(--accent-cyan); font-weight: 600;">Saved locally in your
+              browser</span>
           </label>
           <div style="display: flex; gap: 8px;">
-            <input type="text" class="input-control" id="cfgFirebaseDbUrl" placeholder="https://your-project-default-rtdb.firebaseio.com">
-            <button class="btn btn-primary btn-sm" type="button" onclick="saveFirebaseDbUrl()" style="white-space: nowrap; padding: 0 16px;">
+            <input type="text" class="input-control" id="cfgFirebaseDbUrl"
+              placeholder="https://your-project-default-rtdb.firebaseio.com">
+            <button class="btn btn-primary btn-sm" type="button" onclick="saveFirebaseDbUrl()"
+              style="white-space: nowrap; padding: 0 16px;">
               🔄 Switch & Connect
             </button>
           </div>
           <p style="font-size: 0.72rem; color: var(--text-dim); margin: 4px 0 0 0;">
-            Paste your new Firebase Database URL here and click "Switch & Connect". All dashboard data will instantly reload from your new database!
+            Paste your new Firebase Database URL here and click "Switch & Connect". All dashboard data will instantly
+            reload from your new database!
           </p>
         </div>
 
         <div class="input-group">
           <label class="input-label">Telegram Bot Token</label>
-          <input type="password" class="input-control" id="cfgBotToken" value="8886335903:AAGO5Uk313ALp-6dpi58R-_5cPtcs4f_NEI">
+          <input type="password" class="input-control" id="cfgBotToken"
+            value="8886335903:AAGO5Uk313ALp-6dpi58R-_5cPtcs4f_NEI">
         </div>
 
         <div class="input-group">
@@ -1323,8 +1413,10 @@
             <span style="font-size: 0.72rem; color: var(--accent-cyan); font-weight: 700;">Live Stats & API Host</span>
           </label>
           <div style="display: flex; gap: 8px;">
-            <input type="text" class="input-control" id="cfgWebAppUrl" value="https://landy-tv.onrender.com" oninput="saveServerUrl(this.value)">
-            <button class="btn btn-secondary btn-sm" type="button" onclick="testServerConnection()" style="white-space: nowrap; padding: 0 16px;">
+            <input type="text" class="input-control" id="cfgWebAppUrl" value="https://landy-tv.onrender.com"
+              oninput="saveServerUrl(this.value)">
+            <button class="btn btn-secondary btn-sm" type="button" onclick="testServerConnection()"
+              style="white-space: nowrap; padding: 0 16px;">
               🔗 Test & Connect
             </button>
           </div>
@@ -1371,7 +1463,8 @@
     <div class="modal-box">
       <button class="modal-close" onclick="closeChannelModal()">&times;</button>
       <h3 style="font-size: 1.2rem; font-weight: 800; margin-bottom: 6px;" id="modalTitle">Add Force-Sub Channel</h3>
-      <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 20px;">Channel details will be updated in Firebase immediately</p>
+      <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 20px;">Channel details will be updated in
+        Firebase immediately</p>
 
       <input type="hidden" id="editChannelIndex" value="-1">
 
@@ -1402,7 +1495,8 @@
     <div class="modal-box">
       <button class="modal-close" onclick="closeTimeModal()">&times;</button>
       <h3 style="font-size: 1.2rem; font-weight: 800; margin-bottom: 6px;">Grant Watch Time</h3>
-      <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 16px;">User: <span id="timeModalUserName" style="font-weight: 700; color: #fff;"></span></p>
+      <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 16px;">User: <span id="timeModalUserName"
+          style="font-weight: 700; color: #fff;"></span></p>
 
       <input type="hidden" id="timeModalUserId" value="">
 
@@ -1433,7 +1527,8 @@
         <span style="font-size: 24px;">🟢</span>
         <div>
           <h3 style="font-size: 1.25rem; font-weight: 800; color: #fff;">Real-Time Live Viewers</h3>
-          <p style="font-size: 0.78rem; color: #00f2fe; margin-top: 2px;">Direct server in-memory tracking (0 Firebase load)</p>
+          <p style="font-size: 0.78rem; color: #00f2fe; margin-top: 2px;">Direct server in-memory tracking (0 Firebase
+            load)</p>
         </div>
       </div>
       <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 16px;">
@@ -1514,7 +1609,7 @@
       initBroadcast();
       await loadAllData();
       await fetchLiveStats();
-      
+
       // Fast live viewer poll (4s) - direct to server in-memory, ZERO Firebase load
       setInterval(fetchLiveStats, 4000);
 
@@ -1681,7 +1776,7 @@
               serverLoaded = true;
             }
           }
-        } catch (e) {}
+        } catch (e) { }
 
         // Fallback to direct Firebase RTDB if server API isn't responding
         if (!serverLoaded) {
@@ -1959,7 +2054,7 @@
     // ==========================================
     function setUserFilter(filterName) {
       state.activeUserFilter = filterName;
-      
+
       // Update UI active pill
       document.querySelectorAll('.filter-pill').forEach(pill => pill.classList.remove('active'));
       const activePillMap = {
@@ -2210,7 +2305,7 @@
         if (target) target.watchTimeSeconds = newTotal;
         renderUsers();
         closeTimeModal();
-        showToast(`Added +${mins} minutes to user! New balance: ${Math.floor(newTotal/60)}m`, 'success');
+        showToast(`Added +${mins} minutes to user! New balance: ${Math.floor(newTotal / 60)}m`, 'success');
       } catch (e) {
         showToast('Failed to credit watch time in Firebase', 'error');
       }
@@ -2289,7 +2384,7 @@
     // BROADCAST TAB (Direct Telegram Bot API & Live Preview)
     // ==========================================
     let broadcastButtons = [
-      { id: 1, text: '🍿 Watch Now (Open App)', url: 'https://landytv-production-7d26.up.railway.app', isWebApp: true }
+      { id: 1, text: '🍿 Watch Now (Open App)', url: 'https://landy-tv.onrender.com', isWebApp: true }
     ];
 
     const BROADCAST_TEMPLATES = {
@@ -2297,7 +2392,7 @@
         text: `<b>Come on boys 🥵💦</b>\n\nAbhi abhi <b>20+ Naye Desi, College & Viral Clips</b> add ho gaye hain! 🔥\n\nEkdum HD quality aur smooth streaming! Abhi open karke full maze lo bina ruke! 👇`,
         photo: '',
         buttons: [
-          { id: 1, text: '🔥 Watch Now (Open App)', url: 'https://landytv-production-7d26.up.railway.app', isWebApp: true },
+          { id: 1, text: '🔥 Watch Now (Open App)', url: 'https://landy-tv.onrender.com', isWebApp: true },
           { id: 2, text: '📢 Backup Channel Join', url: 'https://t.me/landy_tv', isWebApp: false }
         ]
       },
@@ -2305,14 +2400,14 @@
         text: `<b>🔞 TONIGHT SPECIAL UNCUT DROP 🔞</b>\n\nRaat ka maza 10x karne ke liye full fresh releases live ho chuki hain! 💦🍿\n\nFull HD, No Ads, Direct Streaming! Jaldi tap karo 👇`,
         photo: '',
         buttons: [
-          { id: 1, text: '🔞 Watch Full Uncut', url: 'https://landytv-production-7d26.up.railway.app', isWebApp: true }
+          { id: 1, text: '🔞 Watch Full Uncut', url: 'https://landy-tv.onrender.com', isWebApp: true }
         ]
       },
       viral_leak: {
         text: `<b>🚨 VIRAL MMS & TRENDING LEAKS 😱💦</b>\n\nSocial media par sabse zyada viral hone wali private videos Landy TV par update ho gayi hain!\n\n⚠️ <i>Copyright strike aane se pehle abhi dekh lo!</i>`,
         photo: '',
         buttons: [
-          { id: 1, text: '⚡ Stream Now Free', url: 'https://landytv-production-7d26.up.railway.app', isWebApp: true },
+          { id: 1, text: '⚡ Stream Now Free', url: 'https://landy-tv.onrender.com', isWebApp: true },
           { id: 2, text: '📢 Join Main Channel', url: 'https://t.me/landy_tv', isWebApp: false }
         ]
       },
@@ -2320,14 +2415,14 @@
         text: `<b>🎁 FREE WATCH TIME SURPRISE! ⚡</b>\n\nSabhi users ke account me bonus watch time recharge ho gaya hai! 🎉\n\nAbhi app kholo aur jitna marzi videos stream karo bilkul Free! 🍿`,
         photo: '',
         buttons: [
-          { id: 1, text: '🎁 Claim & Watch Now', url: 'https://landytv-production-7d26.up.railway.app', isWebApp: true }
+          { id: 1, text: '🎁 Claim & Watch Now', url: 'https://landy-tv.onrender.com', isWebApp: true }
         ]
       },
       hd_update: {
         text: `<b>⚡ 4K ULTRA-HD PLAYER UPDATE! 🚀</b>\n\nPlayer performance optimize ho chuki hai! Zero buffering, full screen theater mode aur auto-next play ready hai! 🍿✨\n\nCheck it out now:`,
         photo: '',
         buttons: [
-          { id: 1, text: '🚀 Open Landy TV 4K', url: 'https://landytv-production-7d26.up.railway.app', isWebApp: true }
+          { id: 1, text: '🚀 Open Landy TV 4K', url: 'https://landy-tv.onrender.com', isWebApp: true }
         ]
       },
       backup_channel: {
@@ -2335,7 +2430,7 @@
         photo: '',
         buttons: [
           { id: 1, text: '📢 Join Backup Channel', url: 'https://t.me/landy_tv', isWebApp: false },
-          { id: 2, text: '🍿 Open App', url: 'https://landytv-production-7d26.up.railway.app', isWebApp: true }
+          { id: 2, text: '🍿 Open App', url: 'https://landy-tv.onrender.com', isWebApp: true }
         ]
       },
       pure_text: {
@@ -2381,7 +2476,7 @@
       if (excludeBlocked) {
         validUsers = validUsers.filter(u => !u.botBlocked);
       }
-      
+
       if (filter === 'all') {
         badge.innerText = `(${validUsers.length} total valid bot recipients)`;
         badge.style.color = 'var(--accent-cyan)';
@@ -2416,7 +2511,7 @@
       broadcastButtons.push({
         id: Date.now() + Math.floor(Math.random() * 1000),
         text: text || '🍿 Open App',
-        url: url || (state.botSettings.webAppUrl || 'https://landytv-production-7d26.up.railway.app'),
+        url: url || (state.botSettings.webAppUrl || 'https://landy-tv.onrender.com'),
         isWebApp: isWebApp
       });
       renderBroadcastButtonsList();
@@ -2714,7 +2809,7 @@
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ userId: user.id, isBlocked: false, botBlocked: true })
-              }).catch(() => {});
+              }).catch(() => { });
             }
           }
         } catch (err) {
@@ -2833,4 +2928,5 @@
     init();
   </script>
 </body>
+
 </html>
