@@ -398,9 +398,19 @@ app.get('/api/related', async (req, res) => {
     }
 });
 
-// Health check
-app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok', realtime: true, time: new Date().toISOString() });
+// Health check & Uptime monitoring (Supports HEAD & GET for UptimeRobot, Render, Cron-job)
+app.all(['/ping', '/health', '/api/health', '/uptime'], (req, res) => {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    if (req.method === 'HEAD') {
+        return res.status(200).end();
+    }
+    return res.json({ status: 'ok', realtime: true, time: new Date().toISOString() });
+});
+
+// Explicit HEAD handler for root URL /
+app.head('/', (req, res) => {
+    res.setHeader('Cache-Control', 'no-cache');
+    return res.status(200).end();
 });
 
 // Force-Sub Verification Client
@@ -1014,3 +1024,15 @@ fallbackPorts.forEach(port => {
         s.on('error', () => {});
     } catch (e) {}
 });
+
+// Self-ping to prevent Render Free Tier from sleeping (Runs every 10 mins)
+const keepAliveUrl = process.env.RENDER_EXTERNAL_URL || process.env.WEB_APP_URL;
+if (keepAliveUrl) {
+    const cleanUrl = keepAliveUrl.replace(/\/$/, '');
+    setInterval(async () => {
+        try {
+            await axios.get(`${cleanUrl}/ping`, { timeout: 6000 });
+            console.log(`[KeepAlive] Pinged ${cleanUrl}/ping - Render server active!`);
+        } catch (e) {}
+    }, 10 * 60 * 1000);
+}
