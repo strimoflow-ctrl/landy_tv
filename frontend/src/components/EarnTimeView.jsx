@@ -13,7 +13,6 @@ import {
   Loader2
 } from 'lucide-react';
 import { showRewardedAd } from '../utils/monetag';
-import TutorialModal from './TutorialModal';
 
 export default function EarnTimeView({ 
   watchTimeSeconds = 0, 
@@ -22,7 +21,6 @@ export default function EarnTimeView({
   setAdPacksProgress,
   userId
 }) {
-  const [showTutorial, setShowTutorial] = useState(false);
   const [adLoading, setAdLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('');
   const [celebration, setCelebration] = useState(null);
@@ -202,39 +200,6 @@ export default function EarnTimeView({
 
   return (
     <div className="earn-time-container">
-
-      {/* Voice Guide Quick Banner */}
-      <button
-        onClick={() => setShowTutorial(true)}
-        style={{
-          background: 'linear-gradient(135deg, rgba(0, 242, 254, 0.12), rgba(255, 42, 95, 0.12))',
-          border: '1px solid rgba(0, 242, 254, 0.35)',
-          borderRadius: '16px',
-          padding: '12px 16px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          width: '100%',
-          cursor: 'pointer',
-          marginBottom: '14px',
-          textAlign: 'left'
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <span style={{ fontSize: '24px' }}>🎧</span>
-          <div>
-            <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#ffffff' }}>
-              Voice Tutorial: Time Kaise Lein?
-            </div>
-            <div style={{ fontSize: '0.74rem', color: '#94a3b8' }}>
-              Audio guide suniye aur step-by-step seekhiye
-            </div>
-          </div>
-        </div>
-        <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#00f2fe', background: 'rgba(0, 242, 254, 0.15)', padding: '5px 10px', borderRadius: '20px' }}>
-          Sunie ▶️
-        </span>
-      </button>
 
       {/* 1. HOLOGRAPHIC WATCH TIME BALANCE CARD */}
       <div className="earn-hero-card">
@@ -434,14 +399,6 @@ export default function EarnTimeView({
           </div>
         </div>
       )}
-
-      {/* 7. VOICE-GUIDED TUTORIAL MODAL */}
-      <TutorialModal
-        isOpen={showTutorial}
-        onClose={() => setShowTutorial(false)}
-        onWatchAd={handleQuickWatch}
-        adLoading={adLoading}
-      />
 
     </div>
   );

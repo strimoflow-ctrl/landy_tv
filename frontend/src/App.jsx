@@ -8,7 +8,6 @@ import SavedVideos from './components/SavedVideos';
 import ProfileView from './components/ProfileView';
 import EarnTimeView from './components/EarnTimeView';
 import ForceSubModal from './components/ForceSubModal';
-import TutorialModal from './components/TutorialModal';
 import { fetchVideos, searchVideos } from './utils/api';
 import { syncSavedVideosFromFirebase } from './utils/storage';
 import { getTelegramUser, initTelegramApp } from './utils/telegram';
@@ -39,9 +38,6 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
-
-  // Global Tutorial Modal State
-  const [showGlobalTutorial, setShowGlobalTutorial] = useState(false);
 
   // Ref to prevent duplicate concurrent page loads
   const loadingRef = useRef(false);
@@ -357,17 +353,6 @@ export default function App() {
         setShowSearch={setShowSearch}
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
-        onOpenTutorial={() => setShowGlobalTutorial(true)}
-      />
-
-      {/* Global Voice-Guided Tutorial Modal */}
-      <TutorialModal
-        isOpen={showGlobalTutorial}
-        onClose={() => setShowGlobalTutorial(false)}
-        onWatchAd={() => {
-          setShowGlobalTutorial(false);
-          setActiveNav('earn_time');
-        }}
       />
 
       {/* Main Content Area */}
