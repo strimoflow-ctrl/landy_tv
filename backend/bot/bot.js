@@ -9,7 +9,7 @@ const TelegramBotPackage = require('node-telegram-bot-api');
 const TelegramBot = TelegramBotPackage.default || TelegramBotPackage.TelegramBot || TelegramBotPackage;
 const path = require('path');
 const dotenv = require('dotenv');
-const { saveOrUpdateUser, isUserBlocked, markUserBotBlocked, processReferral } = require('../firebase');
+const { saveOrUpdateUser, isUserBlocked, markUserBotBlocked, processReferral, getUserData } = require('../firebase');
 const { 
   getActiveChannels, 
   verifyAllChannels, 
@@ -89,15 +89,23 @@ if (BOT_TOKEN && BOT_TOKEN !== 'YOUR_BOT_TOKEN_HERE') {
           return mainBot.sendMessage(chatId, '🚫 Your account has been suspended by the administrator.').catch(() => {});
         }
 
+        // Check if user is already an existing user in Firebase DB
+        const existingUser = await getUserData(user.id);
+        const isBrandNewUser = !existingUser;
+
         // Save user to Firebase
         await saveOrUpdateUser(user);
 
-        // Process referral if user came via referral link
+        // Process referral ONLY if user is brand new (never registered before)
         if (startParam && (startParam.startsWith('ref_') || startParam.startsWith('ref'))) {
           const referrerId = startParam.replace(/^ref_?/, '').trim();
           if (referrerId && referrerId !== String(user.id)) {
-            console.log(`[Referral] User ${user.id} joined via referrer ${referrerId}`);
-            await processReferral(user.id, referrerId, mainBot);
+            if (isBrandNewUser) {
+              console.log(`[Referral] Brand new user ${user.id} joined via referrer ${referrerId}`);
+              await processReferral(user.id, referrerId, mainBot, true);
+            } else {
+              console.log(`[Referral Ignored] User ${user.id} already exists in database. No referral reward.`);
+            }
           }
         }
 

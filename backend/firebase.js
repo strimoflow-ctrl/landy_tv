@@ -113,6 +113,7 @@ async function saveOrUpdateUser(user) {
       savedVideos: existing?.savedVideos || [],
       adPacksProgress: existing?.adPacksProgress || {},
       referredBy: existing?.referredBy || null,
+      referralProcessed: existing?.referralProcessed !== undefined ? existing.referralProcessed : false,
       referralCount: existing?.referralCount !== undefined ? existing.referralCount : 0
     };
 
@@ -125,9 +126,10 @@ async function saveOrUpdateUser(user) {
 }
 
 /**
- * Process referral: credit both referrer and new user if eligible
+ * Process referral: credit both referrer and new user if eligible.
+ * Strictly prevents self-referrals, existing user abuse, and circular referral loops.
  */
-async function processReferral(newUserId, referrerId, botInstance = null) {
+async function processReferral(newUserId, referrerId, botInstance = null, isBrandNewVerified = false) {
   if (!newUserId || !referrerId) return { success: false, reason: 'missing_ids' };
   const uid = String(newUserId);
   const refId = String(referrerId);
@@ -135,29 +137,86 @@ async function processReferral(newUserId, referrerId, botInstance = null) {
 
   try {
     const newUser = await getUserData(uid);
-    // If user already was referred, skip duplicate
-    if (newUser && newUser.referredBy) {
+    if (!newUser) {
+      return { success: false, reason: 'user_not_found' };
+    }
+
+    // 1. If user already was referred or referral already processed, reject
+    if (newUser.referredBy || newUser.referralProcessed) {
       return { success: false, reason: 'already_referred' };
     }
 
+    // 2. Strict New User Verification:
+    // If not verified as brand-new at initial /start, check DB indicators to block existing users
+    if (!isBrandNewVerified) {
+      const now = Date.now();
+      const joinedAt = Number(newUser.joinedAt) || 0;
+      // If user joined more than 5 minutes ago, they are an existing user
+      if (joinedAt > 0 && (now - joinedAt > 5 * 60 * 1000)) {
+        console.log(`[Referral Ignored] User ${uid} joined earlier (${Math.round((now - joinedAt) / 1000)}s ago) - existing user.`);
+        await axios.patch(`${DB_URL}/users/${uid}.json`, { referralProcessed: true }).catch(() => {});
+        return { success: false, reason: 'already_existing_user' };
+      }
+
+      // If user already invited someone before, they are an existing active user
+      if (Number(newUser.referralCount) > 0) {
+        await axios.patch(`${DB_URL}/users/${uid}.json`, { referralProcessed: true }).catch(() => {});
+        return { success: false, reason: 'already_existing_user' };
+      }
+
+      // If user has saved videos or ad pack progress
+      if ((Array.isArray(newUser.savedVideos) && newUser.savedVideos.length > 0) || 
+          (newUser.adPacksProgress && Object.keys(newUser.adPacksProgress).length > 0)) {
+        await axios.patch(`${DB_URL}/users/${uid}.json`, { referralProcessed: true }).catch(() => {});
+        return { success: false, reason: 'already_existing_user' };
+      }
+    }
+
+    // 3. Referrer Validation & Strict Anti-Loop Checks
     const referrer = await getUserData(refId);
     if (!referrer) {
       return { success: false, reason: 'referrer_not_found' };
     }
 
+    // Mutual loop prevention: If referrer was referred by this user
+    if (referrer.referredBy && String(referrer.referredBy) === uid) {
+      console.warn(`[Referral Anti-Fraud] Mutual referral loop detected between ${uid} and ${refId}`);
+      await axios.patch(`${DB_URL}/users/${uid}.json`, { referralProcessed: true }).catch(() => {});
+      return { success: false, reason: 'mutual_referral_loop' };
+    }
+
+    // Multi-hop circular loop prevention: Walk up referral chain (up to 5 hops)
+    let currentHop = referrer;
+    let hops = 0;
+    while (currentHop && currentHop.referredBy && hops < 5) {
+      if (String(currentHop.referredBy) === uid) {
+        console.warn(`[Referral Anti-Fraud] Circular referral chain detected between ${uid} and ${refId}`);
+        await axios.patch(`${DB_URL}/users/${uid}.json`, { referralProcessed: true }).catch(() => {});
+        return { success: false, reason: 'circular_loop_detected' };
+      }
+      hops++;
+      if (hops < 5 && currentHop.referredBy) {
+        currentHop = await getUserData(currentHop.referredBy);
+      } else {
+        break;
+      }
+    }
+
     const settings = await getBotSettings();
     const rewardSec = Number(settings.referralRewardSeconds) || 300; // 5 min default
 
-    // Update new user: save referredBy and bonus time
-    const newUserCurrentTime = newUser?.watchTimeSeconds !== undefined ? newUser.watchTimeSeconds : 180;
+    // Update new user: save referredBy, referralProcessed: true, and add bonus time
+    const newUserCurrentTime = newUser?.watchTimeSeconds !== undefined ? Number(newUser.watchTimeSeconds) : 180;
     await axios.patch(`${DB_URL}/users/${uid}.json`, {
       referredBy: refId,
+      referralProcessed: true,
+      referralRewardedAt: Date.now(),
       watchTimeSeconds: newUserCurrentTime + rewardSec,
       lastActive: Date.now()
     }, { timeout: 5000 });
 
     // Update referrer: add bonus time and increment referral count
-    const refCurrentTime = referrer?.watchTimeSeconds !== undefined ? referrer.watchTimeSeconds : 180;
+    const refCurrentTime = referrer?.watchTimeSeconds !== undefined ? Number(referrer.watchTimeSeconds) : 180;
     const refCount = (Number(referrer.referralCount) || 0) + 1;
     await axios.patch(`${DB_URL}/users/${refId}.json`, {
       watchTimeSeconds: refCurrentTime + rewardSec,
@@ -174,7 +233,7 @@ async function processReferral(newUserId, referrerId, botInstance = null) {
         const rewardMin = Math.round(rewardSec / 60);
         await botInstance.sendMessage(
           refId,
-          `🎉 <b>Naya Friend Join Hua!</b>\n\nAapke invite link se ek dost ne Landy TV join kiya hai! 🍿\n\nAapko mil gaye hain <b>+${rewardMin} Minutes Free Watch Time</b>! 🔥\nTotal Friends Invited: <b>${refCount}</b>`,
+          `🎉 <b>Naya Friend Join Hua!</b>\n\nAapke invite link se ek naye friend ne Landy TV join kiya hai! 🍿\n\nAapko mil gaye hain <b>+${rewardMin} Minutes Free Watch Time</b>! 🔥\nTotal Friends Invited: <b>${refCount}</b>`,
           { parse_mode: 'HTML' }
         );
       } catch (e) {

@@ -2634,7 +2634,10 @@
       }
     }
 
-    function buildTelegramBroadcastPayload(chatId, text, photoUrl, buttons) {
+    let broadcastCachedFileId = null;
+    let broadcastCachedPhotoUrl = null;
+
+    async function sendTelegramBroadcastItem(chatId, text, photoUrl, buttons, botToken) {
       const inlineKeyboard = [];
       buttons.forEach(b => {
         if (b.text && b.url) {
@@ -2646,28 +2649,129 @@
         }
       });
 
+      const replyMarkup = inlineKeyboard.length > 0 ? { inline_keyboard: inlineKeyboard } : null;
+
       if (photoUrl) {
-        const payload = {
-          chat_id: chatId,
-          photo: photoUrl,
-          caption: text,
-          parse_mode: 'HTML'
-        };
-        if (inlineKeyboard.length > 0) {
-          payload.reply_markup = { inline_keyboard: inlineKeyboard };
+        // Reuse Telegram file_id if we already uploaded/verified this exact photo
+        const effectivePhoto = (broadcastCachedPhotoUrl === photoUrl && broadcastCachedFileId)
+          ? broadcastCachedFileId
+          : photoUrl;
+
+        try {
+          const payload = {
+            chat_id: chatId,
+            photo: effectivePhoto,
+            caption: text || '',
+            parse_mode: 'HTML'
+          };
+          if (replyMarkup) payload.reply_markup = replyMarkup;
+
+          let res = await fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          let data = await res.json();
+
+          // If entity parse error, retry without HTML parsing
+          if (!data.ok && data.description && data.description.includes("can't parse entities")) {
+            delete payload.parse_mode;
+            res = await fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+            });
+            data = await res.json();
+          }
+
+          if (data.ok) {
+            if (data.result && Array.isArray(data.result.photo) && data.result.photo.length > 0) {
+              const largest = data.result.photo[data.result.photo.length - 1];
+              broadcastCachedFileId = largest.file_id;
+              broadcastCachedPhotoUrl = photoUrl;
+            }
+            return { ok: true, data };
+          }
+
+          // If Telegram failed to get HTTP URL content from remote server, download Blob and upload directly to Telegram as FormData!
+          const desc = (data.description || '').toLowerCase();
+          if (desc.includes('failed to get http url content') || desc.includes('wrong remote file') || desc.includes('wrong file identifier')) {
+            console.warn('Telegram could not fetch photo URL directly. Downloading blob and uploading directly as file...');
+            try {
+              const imgBlob = await fetch(photoUrl).then(r => r.blob());
+              const fd = new FormData();
+              fd.append('chat_id', chatId);
+              fd.append('photo', imgBlob, 'banner.jpg');
+              if (text) fd.append('caption', text);
+              fd.append('parse_mode', 'HTML');
+              if (replyMarkup) fd.append('reply_markup', JSON.stringify(replyMarkup));
+
+              let uploadRes = await fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
+                method: 'POST',
+                body: fd
+              });
+              let uploadData = await uploadRes.json();
+
+              if (!uploadData.ok && uploadData.description && uploadData.description.includes("can't parse entities")) {
+                fd.delete('parse_mode');
+                uploadRes = await fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
+                  method: 'POST',
+                  body: fd
+                });
+                uploadData = await uploadRes.json();
+              }
+
+              if (uploadData.ok) {
+                if (uploadData.result && Array.isArray(uploadData.result.photo) && uploadData.result.photo.length > 0) {
+                  const largest = uploadData.result.photo[uploadData.result.photo.length - 1];
+                  broadcastCachedFileId = largest.file_id;
+                  broadcastCachedPhotoUrl = photoUrl;
+                }
+                return { ok: true, data: uploadData };
+              } else {
+                return { ok: false, error: uploadData.description || 'Upload failed' };
+              }
+            } catch (blobErr) {
+              return { ok: false, error: data.description || blobErr.message };
+            }
+          }
+
+          return { ok: false, error: data.description || 'Failed to send photo' };
+        } catch (err) {
+          return { ok: false, error: err.message };
         }
-        return { endpoint: 'sendPhoto', payload };
       } else {
-        const payload = {
-          chat_id: chatId,
-          text: text,
-          parse_mode: 'HTML',
-          disable_web_page_preview: true
-        };
-        if (inlineKeyboard.length > 0) {
-          payload.reply_markup = { inline_keyboard: inlineKeyboard };
+        // Pure Text Message
+        try {
+          const payload = {
+            chat_id: chatId,
+            text: text,
+            parse_mode: 'HTML',
+            disable_web_page_preview: false
+          };
+          if (replyMarkup) payload.reply_markup = replyMarkup;
+
+          let res = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          let data = await res.json();
+
+          if (!data.ok && data.description && data.description.includes("can't parse entities")) {
+            delete payload.parse_mode;
+            res = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+            });
+            data = await res.json();
+          }
+
+          return { ok: data.ok, error: data.description, data };
+        } catch (err) {
+          return { ok: false, error: err.message };
         }
-        return { endpoint: 'sendMessage', payload };
       }
     }
 
@@ -2682,7 +2786,7 @@
 
       const text = document.getElementById('broadcastText').value.trim();
       const photoUrl = document.getElementById('broadcastPhotoUrl').value.trim();
-      const botToken = document.getElementById('cfgBotToken').value.trim() || DEFAULT_BOT_TOKEN;
+      const botToken = document.getElementById('cfgBotToken')?.value?.trim() || DEFAULT_BOT_TOKEN;
 
       if (!text && !photoUrl) {
         alert('Please write a message text or provide a banner photo first.');
@@ -2692,18 +2796,12 @@
       showToast(`Sending test preview to ID ${testId}...`, 'info');
 
       try {
-        const { endpoint, payload } = buildTelegramBroadcastPayload(testId, text, photoUrl, broadcastButtons);
-        const res = await fetch(`https://api.telegram.org/bot${botToken}/${endpoint}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        const data = await res.json();
-        if (data.ok) {
+        const result = await sendTelegramBroadcastItem(testId, text, photoUrl, broadcastButtons, botToken);
+        if (result.ok) {
           showToast(`✅ Test message sent to your Telegram (${testId})!`, 'success');
         } else {
-          showToast(`❌ Telegram error: ${data.description || 'Unknown error'}`, 'error');
-          alert(`Telegram API Error: ${data.description}`);
+          showToast(`❌ Telegram error: ${result.error || 'Unknown error'}`, 'error');
+          alert(`Telegram API Error: ${result.error}`);
         }
       } catch (err) {
         showToast(`Failed to send test: ${err.message}`, 'error');
@@ -2714,7 +2812,7 @@
       const text = document.getElementById('broadcastText').value.trim();
       const photoUrl = document.getElementById('broadcastPhotoUrl').value.trim();
       const audienceFilter = document.getElementById('broadcastAudienceFilter').value;
-      const botToken = document.getElementById('cfgBotToken').value.trim() || DEFAULT_BOT_TOKEN;
+      const botToken = document.getElementById('cfgBotToken')?.value?.trim() || DEFAULT_BOT_TOKEN;
 
       if (!text && !photoUrl) {
         alert('Please write a message to broadcast.');
@@ -2788,18 +2886,12 @@
         document.getElementById('broadcastProgressDetail').innerText = `Sending to ${user.id} (${sentCount} sent, ${failedCount} failed)...`;
 
         try {
-          const { endpoint, payload } = buildTelegramBroadcastPayload(user.id, text, photoUrl, broadcastButtons);
-          const tgRes = await fetch(`https://api.telegram.org/bot${botToken}/${endpoint}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-          });
-          const tgData = await tgRes.json();
-          if (tgData.ok) {
+          const result = await sendTelegramBroadcastItem(user.id, text, photoUrl, broadcastButtons, botToken);
+          if (result.ok) {
             sentCount++;
           } else {
             failedCount++;
-            const desc = (tgData.description || '').toLowerCase();
+            const desc = (result.error || '').toLowerCase();
             if (desc.includes('blocked by the user') || desc.includes('chat not found') || desc.includes('deactivated') || desc.includes('kicked') || desc.includes('forbidden')) {
               user.botBlocked = true;
               blockedCount++;
@@ -2816,8 +2908,8 @@
           failedCount++;
         }
 
-        // 80ms throttle to prevent Telegram 429 flood limits
-        await new Promise(r => setTimeout(r, 80));
+        // 60ms throttle to prevent Telegram 429 flood limits
+        await new Promise(r => setTimeout(r, 60));
       }
 
       state.broadcasting = false;

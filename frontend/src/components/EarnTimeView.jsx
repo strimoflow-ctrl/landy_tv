@@ -44,8 +44,8 @@ export default function EarnTimeView({
   }, [userId]);
 
   const handleShareReferral = () => {
-    const text = encodeURIComponent('🔥 Dekho HD Videos Landy TV par bilkul Free! Join karke 5 Minute Free Watch Time pao 🍿👇');
-    const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${text}`;
+    const message = `🔥 Dekho HD Videos Landy TV par bilkul Free! Join karke 5 Minute Free Watch Time pao 🍿👇\n\n${referralLink}`;
+    const shareUrl = `https://t.me/share/url?text=${encodeURIComponent(message)}`;
     if (window.Telegram?.WebApp?.openTelegramLink) {
       window.Telegram.WebApp.openTelegramLink(shareUrl);
     } else {
@@ -280,118 +280,49 @@ export default function EarnTimeView({
       </div>
 
       {/* 2. VIRAL INVITE & EARN REFERRAL CARD */}
-      <div style={{
-        background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(0, 242, 254, 0.12))',
-        border: '1px solid rgba(16, 185, 129, 0.35)',
-        borderRadius: '20px',
-        padding: '18px 20px',
-        marginBottom: '16px',
-        boxShadow: '0 8px 24px rgba(0,0,0,0.3)'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '24px' }}>🚀</span>
-            <div>
-              <h3 style={{ fontSize: '0.98rem', fontWeight: 800, color: '#ffffff', margin: 0 }}>
-                Invite & Earn Watch Time
-              </h3>
-              <p style={{ fontSize: '0.74rem', color: '#a7f3d0', margin: 0 }}>
+      <div className="earn-referral-card">
+        <div className="earn-ref-top">
+          <div className="earn-ref-left">
+            <div className="earn-ref-icon-badge">🚀</div>
+            <div className="earn-ref-text">
+              <h3 className="earn-ref-title">Invite & Earn Watch Time</h3>
+              <p className="earn-ref-subtitle">
                 Har friend ke join karne par <b>+5 Min Free</b> payein!
               </p>
             </div>
           </div>
-          <span style={{
-            background: 'rgba(16, 185, 129, 0.2)',
-            color: '#10b981',
-            border: '1px solid rgba(16, 185, 129, 0.4)',
-            padding: '3px 9px',
-            borderRadius: '12px',
-            fontSize: '0.7rem',
-            fontWeight: 800
-          }}>
-            +5m / Friend
+          <span className="earn-ref-pill">
+            ⚡ +5 Min Free
           </span>
         </div>
 
         {/* Referral Link Bar */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          background: 'rgba(0, 0, 0, 0.45)',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
-          borderRadius: '12px',
-          padding: '8px 12px',
-          marginBottom: '12px'
-        }}>
-          <span style={{
-            fontSize: '0.75rem',
-            color: '#e2e8f0',
-            fontFamily: 'monospace',
-            flex: 1,
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap'
-          }}>
+        <div className="earn-ref-link-box">
+          <span className="earn-ref-link-text">
             {referralLink}
           </span>
           <button
             type="button"
             onClick={handleCopyReferral}
-            style={{
-              background: copiedLink ? '#10b981' : 'rgba(255, 255, 255, 0.12)',
-              border: 'none',
-              color: '#ffffff',
-              padding: '6px 12px',
-              borderRadius: '8px',
-              fontSize: '0.75rem',
-              fontWeight: 700,
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-              flex: 'none'
-            }}
+            className={`earn-ref-copy-btn ${copiedLink ? 'copied' : ''}`}
           >
             {copiedLink ? '✓ Copied!' : 'Copy'}
           </button>
         </div>
 
         {/* Share Button & Stats */}
-        <div style={{ display: 'flex', gap: '10px' }}>
+        <div className="earn-ref-actions">
           <button
             type="button"
             onClick={handleShareReferral}
-            style={{
-              flex: 1,
-              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-              border: 'none',
-              color: '#ffffff',
-              padding: '11px 16px',
-              borderRadius: '12px',
-              fontSize: '0.86rem',
-              fontWeight: 800,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px',
-              boxShadow: '0 4px 14px rgba(16, 185, 129, 0.4)'
-            }}
+            className="earn-ref-share-btn"
           >
-            <span>📲 Share to Telegram</span>
+            <span>📲 Share on Telegram</span>
           </button>
 
-          <div style={{
-            background: 'rgba(255, 255, 255, 0.05)',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
-            borderRadius: '12px',
-            padding: '6px 12px',
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'center',
-            alignItems: 'center'
-          }}>
-            <span style={{ fontSize: '0.65rem', color: '#94a3b8' }}>Friends</span>
-            <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#10b981' }}>{referralCount}</span>
+          <div className="earn-ref-stats-box">
+            <span className="earn-ref-stats-label">Friends</span>
+            <span className="earn-ref-stats-num">{referralCount}</span>
           </div>
         </div>
       </div>
