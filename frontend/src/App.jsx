@@ -122,6 +122,21 @@ export default function App() {
     } catch (e) {}
   }, [tgUser, userId, currentVideo, activeNav]);
 
+  // Helper to check if user was already verified locally
+  const isLocallyVerified = useCallback((uid) => {
+    try {
+      const stored = localStorage.getItem(`landy_sub_verified_${uid}`);
+      if (stored) {
+        const timestamp = parseInt(stored, 10);
+        // Valid for 12 hours
+        if (!isNaN(timestamp) && (Date.now() - timestamp < 12 * 60 * 60 * 1000)) {
+          return true;
+        }
+      }
+    } catch (e) {}
+    return false;
+  }, []);
+
   // Live Subscription & Block Checker (Real Telegram Sessions only, bypass on localhost)
   const checkSubscriptionStatus = useCallback(async () => {
     const user = getTelegramUser();
@@ -136,6 +151,13 @@ export default function App() {
     }
 
     if (activeUid) {
+      // If user was verified within 12 hours, stay subscribed without spamming Telegram
+      if (isLocallyVerified(activeUid)) {
+        setIsSubscribed(true);
+        setUnjoinedChannels([]);
+        return;
+      }
+
       try {
         const res = await fetch(`/api/check-subscription?userId=${activeUid}`);
         const data = await res.json();
@@ -147,15 +169,23 @@ export default function App() {
           }
           setIsBlocked(false);
           if (data.success) {
-            setIsSubscribed(data.isSubscribed);
-            setUnjoinedChannels(data.unjoined || []);
+            if (data.isSubscribed) {
+              try {
+                localStorage.setItem(`landy_sub_verified_${activeUid}`, String(Date.now()));
+              } catch (e) {}
+              setIsSubscribed(true);
+              setUnjoinedChannels([]);
+            } else {
+              setIsSubscribed(false);
+              setUnjoinedChannels(data.unjoined || []);
+            }
           }
         }
       } catch (e) {
         console.warn('Subscription check error:', e);
       }
     }
-  }, []);
+  }, [isLocallyVerified]);
 
   // Lock body scroll when Fullscreen Video Player is open
   useEffect(() => {
@@ -184,12 +214,7 @@ export default function App() {
       sendLiveHeartbeat();
     }, 15000);
 
-    // 3. Low-Frequency Subscription verification (Every 60s)
-    const subTimer = setInterval(() => {
-      checkSubscriptionStatus();
-    }, 60000);
-
-    // 4. Low-Frequency Firebase user sync (Every 5 minutes, saves Firebase usage!)
+    // 3. Low-Frequency Firebase user sync (Every 5 minutes, saves Firebase usage!)
     const fbSyncTimer = setInterval(() => {
       syncUserActivity();
     }, 5 * 60 * 1000);
@@ -241,7 +266,6 @@ export default function App() {
 
     return () => {
       clearInterval(heartbeatTimer);
-      clearInterval(subTimer);
       clearInterval(fbSyncTimer);
     };
   }, [checkSubscriptionStatus, syncUserActivity, sendLiveHeartbeat]);

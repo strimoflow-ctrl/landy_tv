@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Zap, 
   Play, 
@@ -125,7 +125,7 @@ export default function EarnTimeView({
     try {
       const res = await showRewardedAd();
       if (res && res.success) {
-        const currentCount = (adPacksProgress[packId] || 0) + 1;
+        const currentCount = ((adPacksProgress && adPacksProgress[packId]) || 0) + 1;
         const rewardSeconds = rewardMinutes * 60;
 
         if (currentCount >= targetCount) {
@@ -441,7 +441,7 @@ export default function EarnTimeView({
 
         <div className="earn-packs-list">
           {PACKS.map((pack) => {
-            const currentProgress = adPacksProgress[pack.id] || 0;
+            const currentProgress = (adPacksProgress && adPacksProgress[pack.id]) || 0;
             const isCompleted = currentProgress >= pack.target;
             const progressPct = Math.min(100, Math.round((currentProgress / pack.target) * 100));
 

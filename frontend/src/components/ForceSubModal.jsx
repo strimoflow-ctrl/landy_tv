@@ -68,11 +68,21 @@ export default function ForceSubModal({ unjoined = [], onVerifySuccess }) {
       const data = await res.json();
 
       if (data && (data.isSubscribed || !data.unjoined || data.unjoined.length === 0)) {
+        try {
+          if (userId) {
+            localStorage.setItem(`landy_sub_verified_${userId}`, String(Date.now()));
+          }
+        } catch (e) {}
         if (onVerifySuccess) onVerifySuccess();
       } else {
         const remainingUnjoined = data.unjoined || [];
         setChannels(remainingUnjoined);
         if (remainingUnjoined.length === 0) {
+          try {
+            if (userId) {
+              localStorage.setItem(`landy_sub_verified_${userId}`, String(Date.now()));
+            }
+          } catch (e) {}
           if (onVerifySuccess) onVerifySuccess();
         } else {
           setErrorMsg(`⚠️ You still need to join ${remainingUnjoined.length} channel(s) below!`);

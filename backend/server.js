@@ -963,7 +963,7 @@ app.get('/api/check-subscription', async (req, res) => {
         });
     } catch (err) {
         console.error('[API Check Subscription Error]:', err.message);
-        return res.json({ success: true, isBlocked: false, isSubscribed: false, unjoined: channels, channels, error: err.message });
+        return res.json({ success: true, isBlocked: false, isSubscribed: true, unjoined: [], channels, error: err.message });
     }
 });
 

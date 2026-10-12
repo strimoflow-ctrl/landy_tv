@@ -25,9 +25,9 @@ const KNOWN_CHAT_IDS = {
   '-1003906917982': '-1003906917982'
 };
 
-// In-memory verification cache: `${userId}:${chatId}` -> timestamp (15 mins TTL)
+// In-memory verification cache: `${userId}:${chatId}` -> timestamp (24h TTL)
 const verifiedCache = new Map();
-const CACHE_TTL_MS = 15 * 60 * 1000;
+const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
 async function getActiveChannels() {
   try {
@@ -44,13 +44,14 @@ async function getActiveChannels() {
 
 /**
  * Check if a user is a member of a given channel/chat.
- * Checks memory cache, queries numeric ID first, and gracefully falls back.
+ * Checks memory cache, queries numeric ID first, then username with @, and gracefully falls back.
  */
 async function checkUserMembership(botInstance, chatIdOrUsername, userId) {
   if (!botInstance || !userId || !chatIdOrUsername) return false;
 
-  const cleanKey = String(chatIdOrUsername).replace('@', '').toLowerCase();
-  const numericId = KNOWN_CHAT_IDS[cleanKey] || KNOWN_CHAT_IDS[chatIdOrUsername] || null;
+  const raw = String(chatIdOrUsername).trim();
+  const cleanKey = raw.replace('@', '').toLowerCase();
+  const numericId = KNOWN_CHAT_IDS[cleanKey] || KNOWN_CHAT_IDS[raw] || null;
   const cacheKey = `${userId}:${numericId || cleanKey}`;
 
   // 1. Check in-memory verified cache
@@ -59,41 +60,76 @@ async function checkUserMembership(botInstance, chatIdOrUsername, userId) {
     return true;
   }
 
-  // 2. Targets to try: prefer numeric chat ID, then original username
+  // 2. Targets to try: numeric chat ID first (ultra fast), then username with @
   const targets = [];
   if (numericId) targets.push(numericId);
-  if (chatIdOrUsername && !targets.includes(chatIdOrUsername)) targets.push(chatIdOrUsername);
+  if (!cleanKey.startsWith('-100')) {
+    targets.push(`@${cleanKey}`);
+  }
+  if (!targets.includes(raw)) {
+    targets.push(raw);
+  }
 
   for (const target of targets) {
     try {
       const member = await botInstance.getChatMember(target, userId);
       const validStatuses = ['creator', 'administrator', 'member', 'restricted'];
       if (validStatuses.includes(member.status)) {
-        // Cache successful verification
+        // Cache successful verification for 24h
         verifiedCache.set(cacheKey, Date.now() + CACHE_TTL_MS);
         return true;
       }
-      // If member status is explicitly 'left' or 'kicked', user is not a member
+      // If member status is explicitly 'left' or 'kicked', user is definitely not a member
       if (member.status === 'left' || member.status === 'kicked') {
         return false;
       }
     } catch (err) {
       const msg = (err.message || '').toLowerCase();
 
-      // User is definitely NOT a member
-      if (msg.includes('user not found') || msg.includes('participant') || msg.includes('user_not_participant')) {
+      // User is definitely NOT a member (explicit Telegram rejection of user)
+      if (
+        msg.includes('user not found') || 
+        msg.includes('participant') || 
+        msg.includes('user_not_participant') ||
+        msg.includes('participant_id_invalid')
+      ) {
         return false;
       }
 
-      // If the bot cannot access chat or chat is private/inaccessible or bot not admin
-      if (msg.includes('admin') || msg.includes('inaccessible') || msg.includes('chat not found') || msg.includes('bot is not')) {
+      // If the bot cannot access chat or chat is private/inaccessible or bot not admin or chat not found
+      if (
+        msg.includes('admin') || 
+        msg.includes('inaccessible') || 
+        msg.includes('chat not found') || 
+        msg.includes('bot is not') ||
+        msg.includes('channel_private')
+      ) {
         console.warn(`[ForceSub] Bot cannot access ${target}: ${err.message}. Gracefully allowing access.`);
         verifiedCache.set(cacheKey, Date.now() + CACHE_TTL_MS);
         return true;
       }
 
-      // If timeout or network error, continue to next target or allow if temporary
-      console.warn(`[ForceSub] getChatMember error for ${target}:`, err.message);
+      // Telegram Bot API Rate Limits (429) or Network Hiccups (timeout, socket, 502/503/504)
+      // NEVER block active users because Telegram is rate-limiting the bot!
+      if (
+        msg.includes('429') || 
+        msg.includes('too many requests') || 
+        msg.includes('retry after') ||
+        msg.includes('timeout') || 
+        msg.includes('econnreset') || 
+        msg.includes('network') || 
+        msg.includes('socket') || 
+        msg.includes('502') || 
+        msg.includes('503') || 
+        msg.includes('504')
+      ) {
+        console.warn(`[ForceSub] Telegram API rate limit/network issue for ${target} (${err.message}). Gracefully allowing access.`);
+        // Cache for 10 minutes so we don't bombard Telegram API during rate limit spikes
+        verifiedCache.set(cacheKey, Date.now() + 10 * 60 * 1000);
+        return true;
+      }
+
+      console.warn(`[ForceSub] getChatMember warning for ${target}:`, err.message);
     }
   }
 
@@ -111,13 +147,23 @@ async function verifyAllChannels(botInstance, userId) {
     return { isSubscribed: true, unjoined: [], joinedCount: channels.length, totalCount: channels.length, channels };
   }
 
+  // Fast check: if all channels for this user are cached, return instantly
+  const allCacheKey = `${userId}:all_channels_ok`;
+  const allCached = verifiedCache.get(allCacheKey);
+  if (allCached && Date.now() < allCached) {
+    return { isSubscribed: true, unjoined: [], joinedCount: channels.length, totalCount: channels.length, channels };
+  }
+
   // Check all channels concurrently in parallel
   const unjoined = [];
   await Promise.all(
     channels.map(async (ch) => {
-      let target = ch.chatId || ch.id;
+      let target = ch.chatId;
       if (!target && ch.username) {
         target = ch.username.startsWith('@') ? ch.username : `@${ch.username}`;
+      }
+      if (!target && ch.id) {
+        target = ch.id.startsWith('-100') ? ch.id : (ch.id.startsWith('@') ? ch.id : `@${ch.id}`);
       }
       if (!target && (ch.link || ch.url)) {
         const match = (ch.link || ch.url).match(/t\.me\/([a-zA-Z0-9_]+)/);
@@ -138,8 +184,13 @@ async function verifyAllChannels(botInstance, userId) {
     })
   );
 
+  const isSubscribed = unjoined.length === 0;
+  if (isSubscribed) {
+    verifiedCache.set(allCacheKey, Date.now() + CACHE_TTL_MS);
+  }
+
   return {
-    isSubscribed: unjoined.length === 0,
+    isSubscribed,
     unjoined,
     joinedCount: channels.length - unjoined.length,
     totalCount: channels.length,
