@@ -31,8 +31,8 @@ export default function App() {
   const [tgUser, setTgUser] = useState(() => getTelegramUser());
   const userId = tgUser?.id || 'guest_user';
 
-  // User Watch Time & Ad Packs State
-  const [watchTimeSeconds, setWatchTimeSeconds] = useState(180);
+  // User Watch Time & Ad Packs State (Default 5 min = 300s for organic new users)
+  const [watchTimeSeconds, setWatchTimeSeconds] = useState(300);
   const [adPacksProgress, setAdPacksProgress] = useState({});
 
   // Force-Sub Lock State & Blocked State

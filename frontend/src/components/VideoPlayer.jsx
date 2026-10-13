@@ -16,7 +16,7 @@ export default function VideoPlayer({
   video, 
   onClose, 
   onSelectVideo, 
-  watchTimeSeconds = 180, 
+  watchTimeSeconds = 300, 
   setWatchTimeSeconds, 
   onOpenEarnTime,
   userId
@@ -97,7 +97,7 @@ export default function VideoPlayer({
       const v = videoRef.current;
       if (v && !v.paused && !v.ended && v.readyState > 2) {
         setWatchTimeSeconds(prev => {
-          const current = prev !== undefined ? prev : 180;
+          const current = prev !== undefined ? prev : 300;
           if (current <= 1) {
             // Time out!
             v.pause();

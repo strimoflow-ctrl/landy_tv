@@ -44,7 +44,7 @@ export default function EarnTimeView({
   }, [userId]);
 
   const handleShareReferral = () => {
-    const message = `🔥 Dekho HD Videos Landy TV par bilkul Free! Join karke 5 Minute Free Watch Time pao 🍿👇\n\n${referralLink}`;
+    const message = `🔥 Dekho HD Videos Landy TV par bilkul Free! Join karke 10 Minute Free Watch Time pao 🍿👇\n\n${referralLink}`;
     const shareUrl = `https://t.me/share/url?text=${encodeURIComponent(message)}`;
     if (window.Telegram?.WebApp?.openTelegramLink) {
       window.Telegram.WebApp.openTelegramLink(shareUrl);
@@ -287,12 +287,12 @@ export default function EarnTimeView({
             <div className="earn-ref-text">
               <h3 className="earn-ref-title">Invite & Earn Watch Time</h3>
               <p className="earn-ref-subtitle">
-                Har friend ke join karne par <b>+5 Min Free</b> payein!
+                Har friend ke join karne par <b>+30 Min Free</b> payein!
               </p>
             </div>
           </div>
           <span className="earn-ref-pill">
-            ⚡ +5 Min Free
+            ⚡ +30 Min Free
           </span>
         </div>
 

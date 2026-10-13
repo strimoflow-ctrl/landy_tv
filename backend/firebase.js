@@ -32,7 +32,8 @@ const DEFAULT_BOT_SETTINGS = {
   ],
   supportUrl: "https://t.me/landy_tv",
   channelLockEnabled: true,
-  referralRewardSeconds: 300 // 5 minutes default free watch time per referral
+  referralRewardSeconds: 1800, // 30 minutes free watch time per referral
+  newUserBonusSeconds: 300 // +5 minutes bonus for new invited user (total 10 min)
 };
 
 let cachedSettings = null;
@@ -108,8 +109,8 @@ async function saveOrUpdateUser(user) {
       isBlocked: typeof user.isBlocked === 'boolean' ? user.isBlocked : Boolean(existing?.isBlocked),
       joinedAt: existing?.joinedAt || now,
       lastActive: now,
-      // Default 180s (3 minutes) free watch time gift for new users
-      watchTimeSeconds: existing?.watchTimeSeconds !== undefined ? existing.watchTimeSeconds : 180,
+      // Default 300s (5 minutes) free watch time gift for organic new users
+      watchTimeSeconds: existing?.watchTimeSeconds !== undefined ? existing.watchTimeSeconds : 300,
       savedVideos: existing?.savedVideos || [],
       adPacksProgress: existing?.adPacksProgress || {},
       referredBy: existing?.referredBy || null,
@@ -203,23 +204,25 @@ async function processReferral(newUserId, referrerId, botInstance = null, isBran
     }
 
     const settings = await getBotSettings();
-    const rewardSec = Number(settings.referralRewardSeconds) || 300; // 5 min default
+    const referrerRewardSec = Number(settings.referralRewardSeconds) || 1800; // 30 min (1800s) for referrer
+    const newUserBonusSec = Number(settings.newUserBonusSeconds) || 300; // +5 min bonus (total 10 min = 600s) for invited user
 
-    // Update new user: save referredBy, referralProcessed: true, and add bonus time
-    const newUserCurrentTime = newUser?.watchTimeSeconds !== undefined ? Number(newUser.watchTimeSeconds) : 180;
+    // Update new user: save referredBy, referralProcessed: true, and set watch time to 10 min (600s)
+    const newUserCurrentTime = newUser?.watchTimeSeconds !== undefined ? Number(newUser.watchTimeSeconds) : 300;
+    const finalNewUserTime = Math.max(600, newUserCurrentTime + newUserBonusSec);
     await axios.patch(`${DB_URL}/users/${uid}.json`, {
       referredBy: refId,
       referralProcessed: true,
       referralRewardedAt: Date.now(),
-      watchTimeSeconds: newUserCurrentTime + rewardSec,
+      watchTimeSeconds: finalNewUserTime,
       lastActive: Date.now()
     }, { timeout: 5000 });
 
-    // Update referrer: add bonus time and increment referral count
-    const refCurrentTime = referrer?.watchTimeSeconds !== undefined ? Number(referrer.watchTimeSeconds) : 180;
+    // Update referrer: add +30 min (1800s) bonus time and increment referral count
+    const refCurrentTime = referrer?.watchTimeSeconds !== undefined ? Number(referrer.watchTimeSeconds) : 300;
     const refCount = (Number(referrer.referralCount) || 0) + 1;
     await axios.patch(`${DB_URL}/users/${refId}.json`, {
-      watchTimeSeconds: refCurrentTime + rewardSec,
+      watchTimeSeconds: refCurrentTime + referrerRewardSec,
       referralCount: refCount,
       lastActive: Date.now()
     }, { timeout: 5000 });
@@ -230,7 +233,7 @@ async function processReferral(newUserId, referrerId, botInstance = null, isBran
     // Send Telegram notification to referrer
     if (botInstance) {
       try {
-        const rewardMin = Math.round(rewardSec / 60);
+        const rewardMin = Math.round(referrerRewardSec / 60);
         await botInstance.sendMessage(
           refId,
           `🎉 <b>Naya Friend Join Hua!</b>\n\nAapke invite link se ek naye friend ne Landy TV join kiya hai! 🍿\n\nAapko mil gaye hain <b>+${rewardMin} Minutes Free Watch Time</b>! 🔥\nTotal Friends Invited: <b>${refCount}</b>`,
@@ -243,7 +246,8 @@ async function processReferral(newUserId, referrerId, botInstance = null, isBran
 
     return {
       success: true,
-      rewardSeconds: rewardSec,
+      rewardSeconds: referrerRewardSec,
+      newUserRewardSeconds: finalNewUserTime,
       refCount
     };
   } catch (err) {
@@ -270,7 +274,7 @@ async function getUserData(userId) {
 async function updateUserWatchTime(userId, deltaSeconds) {
   try {
     const uData = await getUserData(userId);
-    let current = uData?.watchTimeSeconds !== undefined ? uData.watchTimeSeconds : 180;
+    let current = uData?.watchTimeSeconds !== undefined ? uData.watchTimeSeconds : 300;
     let newTime = Math.max(0, current + Number(deltaSeconds));
     await axios.patch(`${DB_URL}/users/${userId}.json`, { watchTimeSeconds: newTime, lastActive: Date.now() }, { timeout: 5000 });
     return newTime;
@@ -302,7 +306,7 @@ async function updateAdPackProgress(userId, packId, increment = 1, targetCount =
     const uData = await getUserData(userId);
     const progress = uData?.adPacksProgress || {};
     let currentCount = (progress[packId] || 0) + increment;
-    let watchTime = uData?.watchTimeSeconds !== undefined ? uData.watchTimeSeconds : 180;
+    let watchTime = uData?.watchTimeSeconds !== undefined ? uData.watchTimeSeconds : 300;
     let claimed = false;
 
     if (currentCount >= targetCount) {
