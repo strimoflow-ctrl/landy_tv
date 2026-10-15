@@ -109,9 +109,9 @@ if (BOT_TOKEN && BOT_TOKEN !== 'YOUR_BOT_TOKEN_HERE') {
           }
         }
 
-        // Build direct App launch buttons
+        // Build direct App launch buttons (only forward referral params, avoid video auto-play lag)
         let appUrl = WEB_APP_URL;
-        if (startParam && startParam !== 'none') {
+        if (startParam && (startParam.startsWith('ref_') || startParam.startsWith('ref'))) {
           appUrl = `${WEB_APP_URL}?start=${encodeURIComponent(startParam)}`;
         }
 

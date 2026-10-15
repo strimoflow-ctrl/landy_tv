@@ -252,9 +252,8 @@ async function getTargetChannels() {
  * Format and send a single video post to a specific channel with thumbnail & single Watch button
  */
 async function postVideoToChannel(channelId, video) {
-  // Generate safe Base64 start parameter
-  const b64Url = Buffer.from(video.url).toString('base64').replace(/=/g, '');
-  const watchDeepLink = `https://t.me/${BOT_USERNAME}?start=v_${b64Url}`;
+  // Direct clean link to bot (avoids forced auto-play lag and navigation glitches)
+  const watchLink = `https://t.me/${BOT_USERNAME}`;
 
   // Clean, aesthetic Telegram caption
   const caption = [
@@ -266,11 +265,11 @@ async function postVideoToChannel(channelId, video) {
     `👇 <i>Click below to watch full video on Telegram:</i>`
   ].filter(Boolean).join('\n');
 
-  // Exact single button: redirects to bot with start parameter
+  // Exact single button: redirects directly to bot
   const replyMarkup = {
     inline_keyboard: [
       [
-        { text: '🎬 Watch Now (Ultra HD)', url: watchDeepLink }
+        { text: '🎬 Watch Now (Ultra HD)', url: watchLink }
       ]
     ]
   };

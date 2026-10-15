@@ -48,6 +48,7 @@ export default function App() {
 
   // Ref to prevent duplicate concurrent page loads
   const loadingRef = useRef(false);
+  const startParamHandled = useRef(false);
 
   // Initialize Telegram WebApp features
   useEffect(() => {
@@ -219,12 +220,12 @@ export default function App() {
       syncUserActivity();
     }, 5 * 60 * 1000);
 
-    try {
-      const urlParams = new URLSearchParams(window.location.search);
-      let param = tg?.initDataUnsafe?.start_param || urlParams.get('start');
-      if (param) {
-        // 1. Check if referral parameter (ref_USERID)
-        if (param.startsWith('ref_') || param.startsWith('ref')) {
+    if (!startParamHandled.current) {
+      startParamHandled.current = true;
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        let param = tg?.initDataUnsafe?.start_param || urlParams.get('start');
+        if (param && (param.startsWith('ref_') || param.startsWith('ref'))) {
           const refId = param.replace(/^ref_?/, '').trim();
           const activeUid = tgUser?.id || getTelegramUser()?.id;
           if (refId && activeUid && refId !== String(activeUid)) {
@@ -236,32 +237,10 @@ export default function App() {
               if (d.success) syncUserActivity();
             }).catch(() => {});
           }
-        } else {
-          // 2. Direct Video Deep Link
-          let vParam = param;
-          if (vParam.startsWith('v_')) vParam = vParam.substring(2);
-          try {
-            const decoded = atob(vParam);
-            if (decoded && decoded.startsWith('http')) {
-              setCurrentVideo({
-                title: 'Now Playing',
-                url: decoded,
-                thumbnail: '/logo.jpg'
-              });
-            }
-          } catch (e) {
-            if (vParam.startsWith('http')) {
-              setCurrentVideo({
-                title: 'Now Playing',
-                url: vParam,
-                thumbnail: '/logo.jpg'
-              });
-            }
-          }
         }
+      } catch (err) {
+        console.warn('Could not parse start param:', err);
       }
-    } catch (err) {
-      console.warn('Could not parse start param:', err);
     }
 
     return () => {
