@@ -59,7 +59,7 @@ function getAdController() {
     try {
       adControllerInstance = window.Adsgram.init({
         blockId: ADSGRAM_BLOCK_ID,
-        debug: false
+        debug: true
       });
       return adControllerInstance;
     } catch (e) {
