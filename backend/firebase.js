@@ -109,8 +109,8 @@ async function saveOrUpdateUser(user) {
       isBlocked: typeof user.isBlocked === 'boolean' ? user.isBlocked : Boolean(existing?.isBlocked),
       joinedAt: existing?.joinedAt || now,
       lastActive: now,
-      // Default 300s (5 minutes) free watch time gift for organic new users
-      watchTimeSeconds: existing?.watchTimeSeconds !== undefined ? existing.watchTimeSeconds : 300,
+      // Default 1800s (30 minutes) free watch time gift for users
+      watchTimeSeconds: existing?.watchTimeSeconds !== undefined ? existing.watchTimeSeconds : 1800,
       savedVideos: existing?.savedVideos || [],
       adPacksProgress: existing?.adPacksProgress || {},
       referredBy: existing?.referredBy || null,

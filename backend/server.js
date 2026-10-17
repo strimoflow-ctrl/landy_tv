@@ -901,7 +901,7 @@ app.get('/api/user/data', async (req, res) => {
         res.json({
             success: true,
             data: data || {
-                watchTimeSeconds: 300,
+                watchTimeSeconds: 1800,
                 savedVideos: [],
                 adPacksProgress: {}
             }
