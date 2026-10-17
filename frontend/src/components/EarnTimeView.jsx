@@ -12,7 +12,7 @@ import {
   AlertCircle,
   Loader2
 } from 'lucide-react';
-import { showRewardedAd } from '../utils/monetag';
+import { showRewardedAd } from '../utils/adsgram';
 
 export default function EarnTimeView({ 
   watchTimeSeconds = 0, 
@@ -81,16 +81,16 @@ export default function EarnTimeView({
     setTimeout(() => setErrorToast(null), 4500);
   };
 
-  // 1. Quick 1 Ad = +1 Min (60s)
+  // 1. Quick Stream Pass: 1 Ad = +5 Min (300s)
   const handleQuickWatch = async () => {
     if (adLoading) return;
     setAdLoading(true);
-    setLoadingMessage('Loading Monetag Rewarded Video...');
+    setLoadingMessage('Loading Adsgram Sponsor Stream...');
 
     try {
       const res = await showRewardedAd();
       if (res && res.success) {
-        const addedSeconds = 60;
+        const addedSeconds = 300; // 5 Minutes
         const newBalance = (watchTimeSeconds || 0) + addedSeconds;
         setWatchTimeSeconds(newBalance);
 
@@ -103,24 +103,24 @@ export default function EarnTimeView({
           }).catch(e => console.warn('Watch time sync error:', e));
         }
 
-        showCelebrationToast('⚡ Lightning Boost Activated!', '+1 Minute (60s) added to balance!');
+        showCelebrationToast('⚡ Instant Stream Pass Unlocked!', '+5 Minutes (300s) added to balance!');
       } else {
-        showError(res?.error || 'Ad was closed early. Please watch full ad to claim time.');
+        showError(res?.error || 'Sponsor video was closed early. Complete full spotlight to claim +5 minutes.');
       }
     } catch (err) {
       console.error('Ad Error:', err);
-      showError('Failed to load ad. Please retry.');
+      showError('Failed to load sponsor video. Please retry.');
     } finally {
       setAdLoading(false);
       setLoadingMessage('');
     }
   };
 
-  // 2. Watch Ad for Pack Progress
+  // 2. Watch Ad for Pack Progress (Scaling Rewards)
   const handlePackWatch = async (packId, targetCount, rewardMinutes, packTitle) => {
     if (adLoading) return;
     setAdLoading(true);
-    setLoadingMessage(`Preparing ${packTitle} Ad...`);
+    setLoadingMessage(`Preparing ${packTitle} Spotlight...`);
 
     try {
       const res = await showRewardedAd();
@@ -148,7 +148,7 @@ export default function EarnTimeView({
             }).catch(e => console.warn('Reward sync error:', e));
           }
 
-          showCelebrationToast(`🎉 ${packTitle} Unlocked!`, `+${rewardMinutes} Minutes credited to balance!`);
+          showCelebrationToast(`🎉 ${packTitle} Claimed!`, `+${rewardMinutes} Minutes credited to balance!`);
         } else {
           // Increment progress count
           setAdPacksProgress(prev => ({ ...prev, [packId]: currentCount }));
@@ -169,15 +169,15 @@ export default function EarnTimeView({
 
           showCelebrationToast(
             `🎯 Step ${currentCount}/${targetCount} Completed!`,
-            `Watch ${targetCount - currentCount} more ad(s) to unlock +${rewardMinutes} Min!`
+            `Complete ${targetCount - currentCount} more to unlock +${rewardMinutes} Min VIP Pass!`
           );
         }
       } else {
-        showError(res?.error || 'Ad was not completed. Please watch until the end.');
+        showError(res?.error || 'Sponsor video was not completed. Please watch until the end.');
       }
     } catch (err) {
       console.error('Ad Error:', err);
-      showError('Ad playback failed. Please try again.');
+      showError('Sponsor playback failed. Please try again.');
     } finally {
       setAdLoading(false);
       setLoadingMessage('');
@@ -188,43 +188,44 @@ export default function EarnTimeView({
   const batteryPct = Math.min(100, Math.round((watchTimeSeconds / 3600) * 100));
   const approxVideos = Math.max(1, Math.floor(watchTimeSeconds / 60));
 
+  // Tiered progressive packs: Higher ads count = Exponentially bigger bonuses!
   const PACKS = [
     {
-      id: 'pack_5',
+      id: 'pack_3',
       title: 'Starter Pass',
-      target: 5,
-      rewardMinutes: 5,
-      badge: '5 Min Pass',
+      target: 3,
+      rewardMinutes: 20,
+      badge: '+5 MIN BONUS',
       badgeClass: 'badge-cyan',
       icon: <Sparkles size={20} color="#06b6d4" />,
       colorClass: 'pack-cyan'
     },
     {
-      id: 'pack_10',
-      title: 'Silver Power Pack',
-      target: 10,
-      rewardMinutes: 12,
-      badge: '+2 MIN BONUS',
+      id: 'pack_6',
+      title: 'Silver Turbo Pack',
+      target: 6,
+      rewardMinutes: 45,
+      badge: '+15 MIN BONUS',
       badgeClass: 'badge-orange',
       icon: <Flame size={20} color="#f97316" />,
       colorClass: 'pack-orange'
     },
     {
-      id: 'pack_20',
-      title: 'Diamond Turbo Pack',
-      target: 20,
-      rewardMinutes: 25,
-      badge: '+5 MIN BONUS',
+      id: 'pack_12',
+      title: 'Diamond Power Pass',
+      target: 12,
+      rewardMinutes: 100,
+      badge: '+40 MIN BONUS',
       badgeClass: 'badge-purple',
       icon: <Award size={20} color="#a855f7" />,
       colorClass: 'pack-purple'
     },
     {
-      id: 'pack_50',
+      id: 'pack_25',
       title: 'Master VIP Pass',
-      target: 50,
-      rewardMinutes: 120,
-      badge: '+70 MIN MEGA BONUS',
+      target: 25,
+      rewardMinutes: 240,
+      badge: '🔥 4-HOUR VIP PASS',
       badgeClass: 'badge-rose',
       icon: <Crown size={20} color="#fbbf24" />,
       colorClass: 'pack-rose'
@@ -234,7 +235,7 @@ export default function EarnTimeView({
   return (
     <div className="earn-time-container">
 
-      {/* 1. HOLOGRAPHIC WATCH TIME BALANCE CARD */}
+      {/* 1. HOLOGRAPHIC LIVE WATCH TIME BALANCE HUD */}
       <div className="earn-hero-card">
         <div className="earn-hero-header">
           <div>
@@ -279,7 +280,118 @@ export default function EarnTimeView({
         </div>
       </div>
 
-      {/* 2. VIRAL INVITE & EARN REFERRAL CARD */}
+      {/* 2. TOP PRIORITY: INSTANT STREAM PASS (1 AD = 5 MINUTES) */}
+      <div className="earn-quick-card">
+        <div className="earn-quick-left">
+          <div className="earn-quick-icon">
+            <Zap size={22} color="#ffffff" fill="#ffffff" />
+          </div>
+          <div className="earn-quick-content">
+            <div className="earn-quick-title-row">
+              <h3 className="earn-quick-title">Instant Stream Pass</h3>
+              <span className="earn-quick-tag">+5m free</span>
+            </div>
+            <p className="earn-quick-subtitle">
+              Sponsor Spotlight <strong style={{ color: '#34d399' }}>→ Instant +5 Minutes HD Access</strong>
+            </p>
+          </div>
+        </div>
+
+        <button
+          onClick={handleQuickWatch}
+          disabled={adLoading}
+          className="earn-quick-btn"
+        >
+          {adLoading ? (
+            <Loader2 size={15} className="animate-spin" />
+          ) : (
+            <Play size={13} fill="#ffffff" />
+          )}
+          <span>Claim (+5m)</span>
+        </button>
+      </div>
+
+      {/* 3. TIERED WATCH TIME REWARD PACKS (PROGRESSIVE HIGH REWARDS) */}
+      <div className="earn-packs-section">
+        <div className="earn-packs-header">
+          <h2 className="earn-section-title">
+            <Sparkles size={15} color="#ff2a5f" />
+            Tiered VIP Stream Passes
+          </h2>
+          <span className="earn-section-desc">
+            Complete sponsor impressions to unlock exponential bonus watch time 🔥
+          </span>
+        </div>
+
+        <div className="earn-packs-list">
+          {PACKS.map((pack) => {
+            const currentProgress = (adPacksProgress && adPacksProgress[pack.id]) || 0;
+            const isCompleted = currentProgress >= pack.target;
+            const progressPct = Math.min(100, Math.round((currentProgress / pack.target) * 100));
+
+            return (
+              <div 
+                key={pack.id}
+                className={`earn-pack-card ${pack.colorClass}`}
+              >
+                {/* Header */}
+                <div className="earn-pack-top">
+                  <div className="earn-pack-info">
+                    <div className="earn-pack-avatar">
+                      {pack.icon}
+                    </div>
+                    <div className="earn-pack-text">
+                      <h4 className="earn-pack-title">{pack.title}</h4>
+                      <p className="earn-pack-reward">
+                        Reward: <strong>+{pack.rewardMinutes} Min</strong> ({pack.rewardMinutes * 60}s)
+                      </p>
+                    </div>
+                  </div>
+
+                  <span className={`earn-pack-badge ${pack.badgeClass}`}>
+                    {pack.badge}
+                  </span>
+                </div>
+
+                {/* Progress Bar */}
+                <div className="earn-pack-progress-row">
+                  <span style={{ color: '#94a3b8' }}>Progress</span>
+                  <span style={{ color: '#ffffff', fontWeight: 800 }}>
+                    {currentProgress} / {pack.target} Completed
+                  </span>
+                </div>
+
+                <div className="earn-energy-bar-wrap">
+                  <div 
+                    className="earn-energy-bar-fill" 
+                    style={{ width: `${Math.max(4, progressPct)}%` }}
+                  />
+                </div>
+
+                {/* Action Button */}
+                <button
+                  onClick={() => handlePackWatch(pack.id, pack.target, pack.rewardMinutes, pack.title)}
+                  disabled={adLoading}
+                  className={`earn-pack-btn ${isCompleted ? 'ready-claim' : ''}`}
+                >
+                  {adLoading ? (
+                    <Loader2 size={15} className="animate-spin" />
+                  ) : (
+                    <Play size={13} fill="#ffffff" />
+                  )}
+                  <span>
+                    {isCompleted
+                      ? `🎉 Unlock +${pack.rewardMinutes} Min Now!`
+                      : `Watch Spotlight (${currentProgress}/${pack.target})`}
+                  </span>
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 4. VIRAL INVITE & EARN REFERRAL CARD (POSITIONED BELOW AS REQUESTED) */}
       <div className="earn-referral-card">
         <div className="earn-ref-top">
           <div className="earn-ref-left">
@@ -327,137 +439,26 @@ export default function EarnTimeView({
         </div>
       </div>
 
-      {/* 3. INSTANT LIGHTNING QUICK BOOST (1 AD = 1 MINUTE) */}
-      <div className="earn-quick-card">
-        <div className="earn-quick-left">
-          <div className="earn-quick-icon">
-            <Zap size={22} color="#ffffff" fill="#ffffff" />
-          </div>
-          <div className="earn-quick-content">
-            <div className="earn-quick-title-row">
-              <h3 className="earn-quick-title">Quick Boost</h3>
-              <span className="earn-quick-tag">+1m free</span>
-            </div>
-            <p className="earn-quick-subtitle">
-              Watch 1 ad <strong style={{ color: '#34d399' }}>→ Get +60s Time</strong>
-            </p>
-          </div>
-        </div>
-
-        <button
-          onClick={handleQuickWatch}
-          disabled={adLoading}
-          className="earn-quick-btn"
-        >
-          {adLoading ? (
-            <Loader2 size={15} className="animate-spin" />
-          ) : (
-            <Play size={13} fill="#ffffff" />
-          )}
-          <span>Watch (+1m)</span>
-        </button>
-      </div>
-
-      {/* 3. TIERED WATCH TIME PACKS SECTION */}
-      <div className="earn-packs-section">
-        <div className="earn-packs-header">
-          <h2 className="earn-section-title">
-            <Sparkles size={15} color="#ff2a5f" />
-            Watch Time Reward Packs
-          </h2>
-          <span className="earn-section-desc">
-            Complete ad packs to unlock large bonus watch time 🔥
-          </span>
-        </div>
-
-        <div className="earn-packs-list">
-          {PACKS.map((pack) => {
-            const currentProgress = (adPacksProgress && adPacksProgress[pack.id]) || 0;
-            const isCompleted = currentProgress >= pack.target;
-            const progressPct = Math.min(100, Math.round((currentProgress / pack.target) * 100));
-
-            return (
-              <div 
-                key={pack.id}
-                className={`earn-pack-card ${pack.colorClass}`}
-              >
-                {/* Header */}
-                <div className="earn-pack-top">
-                  <div className="earn-pack-info">
-                    <div className="earn-pack-avatar">
-                      {pack.icon}
-                    </div>
-                    <div className="earn-pack-text">
-                      <h4 className="earn-pack-title">{pack.title}</h4>
-                      <p className="earn-pack-reward">
-                        Reward: <strong>+{pack.rewardMinutes} Min</strong> ({pack.rewardMinutes * 60}s)
-                      </p>
-                    </div>
-                  </div>
-
-                  <span className={`earn-pack-badge ${pack.badgeClass}`}>
-                    {pack.badge}
-                  </span>
-                </div>
-
-                {/* Progress Bar */}
-                <div className="earn-pack-progress-row">
-                  <span style={{ color: '#94a3b8' }}>Progress</span>
-                  <span style={{ color: '#ffffff', fontWeight: 800 }}>
-                    {currentProgress} / {pack.target} Ads
-                  </span>
-                </div>
-
-                <div className="earn-energy-bar-wrap">
-                  <div 
-                    className="earn-energy-bar-fill" 
-                    style={{ width: `${Math.max(4, progressPct)}%` }}
-                  />
-                </div>
-
-                {/* Action Button */}
-                <button
-                  onClick={() => handlePackWatch(pack.id, pack.target, pack.rewardMinutes, pack.title)}
-                  disabled={adLoading}
-                  className={`earn-pack-btn ${isCompleted ? 'ready-claim' : ''}`}
-                >
-                  {adLoading ? (
-                    <Loader2 size={15} className="animate-spin" />
-                  ) : (
-                    <Play size={13} fill="#ffffff" />
-                  )}
-                  <span>
-                    {isCompleted
-                      ? `🎉 Claim +${pack.rewardMinutes} Min Now!`
-                      : `Watch Ad (${currentProgress}/${pack.target})`}
-                  </span>
-                </button>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* 4. LOADING OVERLAY */}
+      {/* 5. LOADING OVERLAY */}
       {adLoading && (
         <div className="earn-loader-overlay">
           <div className="earn-loader-box">
             <div className="earn-loader-spinner"></div>
             <div>
-              <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#fff' }}>Opening Rewarded Ad...</h3>
+              <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#fff' }}>Opening Sponsor Spotlight...</h3>
               <p style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '4px' }}>
-                {loadingMessage || 'Please watch full ad to verify and credit watch time.'}
+                {loadingMessage || 'Please complete full video spotlight to claim stream time.'}
               </p>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.72rem', fontWeight: 700, color: '#fbbf24', background: 'rgba(251, 191, 36, 0.1)', padding: '6px 12px', borderRadius: '10px', border: '1px solid rgba(251, 191, 36, 0.2)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.72rem', fontWeight: 700, color: '#38bdf8', background: 'rgba(56, 189, 248, 0.1)', padding: '6px 12px', borderRadius: '10px', border: '1px solid rgba(56, 189, 248, 0.2)' }}>
               <ShieldCheck size={16} />
-              <span>Monetag Verified Rewarded Stream</span>
+              <span>Adsgram Verified TMA Stream</span>
             </div>
           </div>
         </div>
       )}
 
-      {/* 5. CELEBRATION TOAST */}
+      {/* 6. CELEBRATION TOAST */}
       {celebration && (
         <div className="earn-toast-celebration">
           <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>
@@ -470,12 +471,12 @@ export default function EarnTimeView({
         </div>
       )}
 
-      {/* 6. ERROR TOAST */}
+      {/* 7. ERROR TOAST */}
       {errorToast && (
         <div className="earn-toast-error">
           <AlertCircle size={22} color="#ffffff" style={{ flexShrink: 0 }} />
           <div style={{ flex: 1 }}>
-            <h4 style={{ fontWeight: 800, fontSize: '0.85rem' }}>Ad Notice</h4>
+            <h4 style={{ fontWeight: 800, fontSize: '0.85rem' }}>Sponsor Notice</h4>
             <p style={{ fontSize: '0.75rem', opacity: 0.9 }}>{errorToast}</p>
           </div>
         </div>

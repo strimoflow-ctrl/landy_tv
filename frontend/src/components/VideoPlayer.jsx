@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { ArrowLeft, Heart, Bookmark, Share2, Eye, Clock, Sparkles, Maximize, Minimize, Zap, Play } from 'lucide-react';
 import { fetchVideoSource, fetchRelatedVideos } from '../utils/api';
 import { isVideoSaved, toggleSaveVideo, addToWatchHistory } from '../utils/storage';
-import { showRewardedAd } from '../utils/monetag';
+import { showRewardedAd } from '../utils/adsgram';
 
 const EMOJI_LIST = [
   { key: 'fire', emoji: '🔥', label: 'Hot' },
@@ -146,7 +146,7 @@ export default function VideoPlayer({
     try {
       const res = await showRewardedAd();
       if (res && res.success) {
-        const addedSeconds = 60;
+        const addedSeconds = 300; // +5 Minutes
         setWatchTimeSeconds(prev => (prev || 0) + addedSeconds);
         setShowTimeOutModal(false);
 
@@ -158,7 +158,7 @@ export default function VideoPlayer({
           }).catch(() => {});
         }
 
-        showToast('⚡ +1 Minute Watch Time Added! Resuming video...');
+        showToast('⚡ +5 Minutes Watch Time Added! Resuming stream...');
         setTimeout(() => {
           if (videoRef.current) {
             videoRef.current.play().catch(() => {});
@@ -705,7 +705,7 @@ export default function VideoPlayer({
               Watch Time Finished!
             </h2>
             <p style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: '1.5', marginBottom: '22px' }}>
-              Aapka watch time balance khatam ho gaya hai. Free watch time pane ke liye Monetag ad dekhein!
+              Aapka watch time balance khatam ho gaya hai. Unlimited HD stream continue rakhne ke liye sponsor spotlight dekhein aur instant +5 Minute payein!
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -730,7 +730,7 @@ export default function VideoPlayer({
                 }}
               >
                 <Zap size={16} fill="#fff" />
-                <span>{adLoading ? 'Loading Ad...' : 'Watch Quick Ad (+1 Min)'}</span>
+                <span>{adLoading ? 'Opening Sponsor Video...' : 'Watch Spotlight (+5 Min)'}</span>
               </button>
 
               <button
