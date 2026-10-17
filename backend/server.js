@@ -424,6 +424,7 @@ app.get('/api/related', async (req, res) => {
         } catch (e) {
             return res.json({ success: true, page, count: 0, data: [] });
         }
+    }
 });
 
 // 3.1 High-Speed Thumbnail Proxy (Bypasses ISP blocks, CDN hotlinking protection, and mobile network throttling)
