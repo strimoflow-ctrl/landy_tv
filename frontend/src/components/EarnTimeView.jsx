@@ -280,19 +280,64 @@ export default function EarnTimeView({
         </div>
       </div>
 
-      {/* 2. TOP PRIORITY: INSTANT STREAM PASS (1 AD = 5 MINUTES) */}
+      {/* 2. VIRAL INVITE & EARN REFERRAL CARD (POSITION #2 AS REQUESTED) */}
+      <div className="earn-referral-card">
+        <div className="earn-ref-top">
+          <div className="earn-ref-left">
+            <div className="earn-ref-icon-badge">🚀</div>
+            <div className="earn-ref-text">
+              <h3 className="earn-ref-title">Invite & Earn Watch Time</h3>
+              <p className="earn-ref-subtitle">
+                Har friend ke join karne par <b>+30 Min Free</b> payein!
+              </p>
+            </div>
+          </div>
+          <span className="earn-ref-pill">
+            ⚡ +30 Min Free
+          </span>
+        </div>
+
+        {/* Referral Link Bar */}
+        <div className="earn-ref-link-box">
+          <span className="earn-ref-link-text">
+            {referralLink}
+          </span>
+          <button
+            type="button"
+            onClick={handleCopyReferral}
+            className={`earn-ref-copy-btn ${copiedLink ? 'copied' : ''}`}
+          >
+            {copiedLink ? '✓ Copied!' : 'Copy'}
+          </button>
+        </div>
+
+        {/* Share Button & Stats */}
+        <div className="earn-ref-actions">
+          <button
+            type="button"
+            onClick={handleShareReferral}
+            className="earn-ref-share-btn"
+          >
+            <span>📲 Share on Telegram</span>
+          </button>
+
+          <div className="earn-ref-stats-box">
+            <span className="earn-ref-stats-label">Friends</span>
+            <span className="earn-ref-stats-num">{referralCount}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* 3. INSTANT STREAM PASS (1 AD = 5 MINUTES) */}
       <div className="earn-quick-card">
         <div className="earn-quick-left">
           <div className="earn-quick-icon">
             <Zap size={22} color="#ffffff" fill="#ffffff" />
           </div>
           <div className="earn-quick-content">
-            <div className="earn-quick-title-row">
-              <h3 className="earn-quick-title">Instant Stream Pass</h3>
-              <span className="earn-quick-tag">+5m free</span>
-            </div>
+            <h3 className="earn-quick-title">Instant Stream Pass</h3>
             <p className="earn-quick-subtitle">
-              Sponsor Spotlight <strong style={{ color: '#34d399' }}>→ Instant +5 Minutes HD Access</strong>
+              Sponsor Spotlight <strong style={{ color: '#34d399' }}>→ +5 Min HD Stream</strong>
             </p>
           </div>
         </div>
@@ -311,7 +356,7 @@ export default function EarnTimeView({
         </button>
       </div>
 
-      {/* 3. TIERED WATCH TIME REWARD PACKS (PROGRESSIVE HIGH REWARDS) */}
+      {/* 4. TIERED WATCH TIME REWARD PACKS (PROGRESSIVE HIGH REWARDS) */}
       <div className="earn-packs-section">
         <div className="earn-packs-header">
           <h2 className="earn-section-title">
@@ -388,54 +433,6 @@ export default function EarnTimeView({
               </div>
             );
           })}
-        </div>
-      </div>
-
-      {/* 4. VIRAL INVITE & EARN REFERRAL CARD (POSITIONED BELOW AS REQUESTED) */}
-      <div className="earn-referral-card">
-        <div className="earn-ref-top">
-          <div className="earn-ref-left">
-            <div className="earn-ref-icon-badge">🚀</div>
-            <div className="earn-ref-text">
-              <h3 className="earn-ref-title">Invite & Earn Watch Time</h3>
-              <p className="earn-ref-subtitle">
-                Har friend ke join karne par <b>+30 Min Free</b> payein!
-              </p>
-            </div>
-          </div>
-          <span className="earn-ref-pill">
-            ⚡ +30 Min Free
-          </span>
-        </div>
-
-        {/* Referral Link Bar */}
-        <div className="earn-ref-link-box">
-          <span className="earn-ref-link-text">
-            {referralLink}
-          </span>
-          <button
-            type="button"
-            onClick={handleCopyReferral}
-            className={`earn-ref-copy-btn ${copiedLink ? 'copied' : ''}`}
-          >
-            {copiedLink ? '✓ Copied!' : 'Copy'}
-          </button>
-        </div>
-
-        {/* Share Button & Stats */}
-        <div className="earn-ref-actions">
-          <button
-            type="button"
-            onClick={handleShareReferral}
-            className="earn-ref-share-btn"
-          >
-            <span>📲 Share on Telegram</span>
-          </button>
-
-          <div className="earn-ref-stats-box">
-            <span className="earn-ref-stats-label">Friends</span>
-            <span className="earn-ref-stats-num">{referralCount}</span>
-          </div>
         </div>
       </div>
 
