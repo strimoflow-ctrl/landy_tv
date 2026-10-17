@@ -49,6 +49,7 @@ export default function WatchHistory({ onSelectVideo }) {
             <VideoCard 
               key={`${video.url}-${idx}`} 
               video={video} 
+              index={idx}
               onSelectVideo={onSelectVideo} 
             />
           ))}

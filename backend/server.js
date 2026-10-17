@@ -102,14 +102,34 @@ function extractVideos($, baseUrl = BASE_SOURCE_URL) {
 
         let thumbnail = '';
         const thumbDiv = $(element).find('.thumb');
+        const dataBg = thumbDiv.attr('data-bg') || thumbDiv.attr('data-src') || thumbDiv.attr('data-original') || '';
         const style = thumbDiv.attr('style') || '';
         const bgMatch = style.match(/url\(['"]?(.*?)['"]?\)/i);
-        if (bgMatch && bgMatch[1]) {
+
+        if (dataBg) {
+            thumbnail = dataBg.replace(/&amp;/g, '&');
+        } else if (bgMatch && bgMatch[1]) {
             thumbnail = bgMatch[1].replace(/&amp;/g, '&');
         } else {
-            const mseen = $(element).attr('data-mseen') || $(element).attr('data-vid');
-            if (mseen) {
-                thumbnail = `https://cdn.masahub.cc/pictures/${mseen}.jpg?class=mthum`;
+            const img = $(element).find('img');
+            const imgSrc = img.attr('data-bg') || img.attr('data-src') || img.attr('data-original') || img.attr('src') || '';
+            if (imgSrc) {
+                thumbnail = imgSrc.replace(/&amp;/g, '&');
+            } else {
+                const mseen = $(element).attr('data-mseen') || $(element).attr('data-vid');
+                if (mseen) {
+                    thumbnail = `https://mhub2.b-cdn.net/pictures/${mseen}.jpg?class=mthum&face_crop=true`;
+                }
+            }
+        }
+
+        // Clean protocol or relative URL
+        if (thumbnail) {
+            thumbnail = thumbnail.trim();
+            if (thumbnail.startsWith('//')) {
+                thumbnail = 'https:' + thumbnail;
+            } else if (!thumbnail.startsWith('http')) {
+                thumbnail = baseUrl.replace(/\/$/, '') + '/' + thumbnail.replace(/^\//, '');
             }
         }
 
@@ -124,7 +144,7 @@ function extractVideos($, baseUrl = BASE_SOURCE_URL) {
             videos.push({
                 title: title.trim(),
                 url: url.trim(),
-                thumbnail: thumbnail ? thumbnail.trim() : '',
+                thumbnail: thumbnail || '',
                 duration,
                 views
             });
@@ -140,7 +160,16 @@ function extractVideos($, baseUrl = BASE_SOURCE_URL) {
                 url = baseUrl.replace(/\/$/, '') + '/' + url.replace(/^\//, '');
             }
 
-            let thumbnail = $(element).find('.vt-thumb img').attr('data-src') || $(element).find('.vt-thumb img').attr('src') || '';
+            let thumbnail = $(element).find('.vt-thumb img').attr('data-bg') || 
+                            $(element).find('.vt-thumb img').attr('data-src') || 
+                            $(element).find('.vt-thumb img').attr('data-original') || 
+                            $(element).find('.vt-thumb img').attr('src') || 
+                            $(element).find('.vt-thumb').attr('data-bg') || '';
+            if (thumbnail) {
+                thumbnail = thumbnail.trim();
+                if (thumbnail.startsWith('//')) thumbnail = 'https:' + thumbnail;
+                else if (!thumbnail.startsWith('http')) thumbnail = baseUrl.replace(/\/$/, '') + '/' + thumbnail.replace(/^\//, '');
+            }
             const duration = $(element).find('.vt-duration').text().trim() || 'N/A';
             const views = $(element).find('.vt-card-views').text().trim() || '10K views';
 
@@ -149,7 +178,7 @@ function extractVideos($, baseUrl = BASE_SOURCE_URL) {
                 videos.push({
                     title: title.trim(),
                     url: url.trim(),
-                    thumbnail: thumbnail ? thumbnail.trim() : '',
+                    thumbnail: thumbnail || '',
                     duration,
                     views
                 });
@@ -395,6 +424,44 @@ app.get('/api/related', async (req, res) => {
         } catch (e) {
             return res.json({ success: true, page, count: 0, data: [] });
         }
+});
+
+// 3.1 High-Speed Thumbnail Proxy (Bypasses ISP blocks, CDN hotlinking protection, and mobile network throttling)
+app.get('/api/proxy-thumbnail', async (req, res) => {
+    const rawUrl = req.query.url;
+    if (!rawUrl || typeof rawUrl !== 'string' || !rawUrl.startsWith('http')) {
+        return res.redirect('/logo.jpg');
+    }
+
+    const cacheKey = `img_proxy_${rawUrl}`;
+    const cachedImg = getCached(cacheKey);
+    if (cachedImg) {
+        res.set('Content-Type', cachedImg.contentType);
+        res.set('Cache-Control', 'public, max-age=604800, immutable');
+        return res.send(cachedImg.buffer);
+    }
+
+    try {
+        const response = await axios.get(rawUrl, {
+            responseType: 'arraybuffer',
+            timeout: 6000,
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+                'Referer': BASE_SOURCE_URL,
+                'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8'
+            }
+        });
+
+        const contentType = response.headers['content-type'] || 'image/jpeg';
+        const buffer = Buffer.from(response.data);
+
+        setCached(cacheKey, { contentType, buffer });
+
+        res.set('Content-Type', contentType);
+        res.set('Cache-Control', 'public, max-age=604800, immutable');
+        return res.send(buffer);
+    } catch (e) {
+        return res.redirect('/logo.jpg');
     }
 });
 

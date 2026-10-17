@@ -42,6 +42,7 @@ export default function VideoGrid({ videos, loading, hasMore, onLoadMore, onSele
           <VideoCard 
             key={`${video.url}-${idx}`} 
             video={video} 
+            index={idx}
             onSelectVideo={onSelectVideo} 
           />
         ))}

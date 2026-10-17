@@ -34,6 +34,7 @@ export default function SavedVideos({ onSelectVideo }) {
           <VideoCard 
             key={`${video.url}-${idx}`} 
             video={video} 
+            index={idx}
             onSelectVideo={onSelectVideo} 
           />
         ))}

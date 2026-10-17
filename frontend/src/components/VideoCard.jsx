@@ -1,16 +1,34 @@
 import React from 'react';
 import { Play, Eye, Clock } from 'lucide-react';
 
-export default function VideoCard({ video, onSelectVideo }) {
+export default function VideoCard({ video, onSelectVideo, index = 0 }) {
+  const [loaded, setLoaded] = React.useState(false);
+  const isEager = index < 6;
+
+  const handleImageError = (e) => {
+    // If direct CDN was blocked or failed, retry once via server proxy
+    if (!e.target.dataset.retried && video.thumbnail && video.thumbnail.startsWith('http')) {
+      e.target.dataset.retried = 'true';
+      e.target.src = `/api/proxy-thumbnail?url=${encodeURIComponent(video.thumbnail)}`;
+    } else {
+      e.target.src = '/logo.jpg';
+      setLoaded(true);
+    }
+  };
+
   return (
     <div className="video-card" onClick={() => onSelectVideo(video)}>
-      <div className="thumbnail-wrapper">
+      <div className={`thumbnail-wrapper ${!loaded ? 'skeleton' : ''}`}>
         <img 
           src={video.thumbnail || '/logo.jpg'} 
           alt={video.title} 
-          className="video-thumb" 
-          loading="lazy" 
-          onError={(e) => { e.target.src = '/logo.jpg'; }}
+          className={`video-thumb ${loaded ? 'loaded' : 'loading'}`}
+          loading={isEager ? "eager" : "lazy"}
+          fetchPriority={index < 4 ? "high" : "auto"}
+          decoding="async"
+          referrerPolicy="no-referrer"
+          onLoad={() => setLoaded(true)}
+          onError={handleImageError}
         />
         {video.duration && (
           <div className="duration-chip">

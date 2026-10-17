@@ -79,15 +79,31 @@ async function fetchVideosPage(page = 1) {
       // 3. Extract Real Thumbnail (Masahub cdn or style background)
       let thumbnail = '';
       const thumbDiv = $(element).find('.thumb');
+      const dataBg = thumbDiv.attr('data-bg') || thumbDiv.attr('data-src') || thumbDiv.attr('data-original') || '';
       const style = thumbDiv.attr('style') || '';
       const bgMatch = style.match(/url\(['"]?(.*?)['"]?\)/i);
-      if (bgMatch && bgMatch[1]) {
+
+      if (dataBg) {
+        thumbnail = dataBg.replace(/&amp;/g, '&');
+      } else if (bgMatch && bgMatch[1]) {
         thumbnail = bgMatch[1].replace(/&amp;/g, '&');
       } else {
-        const mseen = $(element).attr('data-mseen') || $(element).attr('data-vid');
-        if (mseen) {
-          thumbnail = `https://cdn.masahub.cc/pictures/${mseen}.jpg?class=mthum`;
+        const img = $(element).find('img');
+        const imgSrc = img.attr('data-bg') || img.attr('data-src') || img.attr('src') || '';
+        if (imgSrc) {
+          thumbnail = imgSrc.replace(/&amp;/g, '&');
+        } else {
+          const mseen = $(element).attr('data-mseen') || $(element).attr('data-vid');
+          if (mseen) {
+            thumbnail = `https://mhub2.b-cdn.net/pictures/${mseen}.jpg?class=mthum&face_crop=true`;
+          }
         }
+      }
+
+      if (thumbnail) {
+        thumbnail = thumbnail.trim();
+        if (thumbnail.startsWith('//')) thumbnail = 'https:' + thumbnail;
+        else if (!thumbnail.startsWith('http')) thumbnail = BASE_SOURCE_URL.replace(/\/$/, '') + '/' + thumbnail.replace(/^\//, '');
       }
 
       // 4. Duration & Views

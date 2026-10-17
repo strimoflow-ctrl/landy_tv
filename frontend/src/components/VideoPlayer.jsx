@@ -610,8 +610,17 @@ export default function VideoPlayer({
                           src={rel.thumbnail || '/logo.jpg'} 
                           alt={rel.title} 
                           style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
-                          loading="lazy"
-                          onError={(e) => { e.target.src = '/logo.jpg'; }}
+                          loading={idx < 4 ? "eager" : "lazy"}
+                          decoding="async"
+                          referrerPolicy="no-referrer"
+                          onError={(e) => {
+                            if (!e.target.dataset.retried && rel.thumbnail && rel.thumbnail.startsWith('http')) {
+                              e.target.dataset.retried = 'true';
+                              e.target.src = `/api/proxy-thumbnail?url=${encodeURIComponent(rel.thumbnail)}`;
+                            } else {
+                              e.target.src = '/logo.jpg';
+                            }
+                          }}
                         />
                         {rel.duration && (
                           <span className="duration-chip" style={{ fontSize: '0.65rem', padding: '2px 4px' }}>

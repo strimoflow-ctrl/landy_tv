@@ -245,7 +245,13 @@ body {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.35s ease;
+  transition: opacity 0.25s ease, transform 0.35s ease;
+}
+.video-thumb.loading {
+  opacity: 0;
+}
+.video-thumb.loaded {
+  opacity: 1;
 }
 .video-card:hover .video-thumb {
   transform: scale(1.05);
